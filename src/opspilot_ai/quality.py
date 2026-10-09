@@ -14,7 +14,7 @@ def evaluate_data_contract(source: dict[str, Any], baseline: dict[str, Any]) -> 
     schema_fields = set(schema) if isinstance(schema, list) and all(isinstance(x, str) for x in schema) else None
 
     required = contract.get("required_columns")
-    if isinstance(required, list) and schema_fields is not None:
+    if isinstance(required, list) and all(isinstance(x, str) for x in required) and schema_fields is not None:
         missing = sorted(set(required) - schema_fields)
         if missing:
             violations.append({
@@ -26,7 +26,7 @@ def evaluate_data_contract(source: dict[str, Any], baseline: dict[str, Any]) -> 
             })
 
     allowed = contract.get("allowed_columns")
-    if isinstance(allowed, list) and schema_fields is not None:
+    if isinstance(allowed, list) and all(isinstance(x, str) for x in allowed) and schema_fields is not None:
         unexpected = sorted(schema_fields - set(allowed))
         if unexpected:
             violations.append({
