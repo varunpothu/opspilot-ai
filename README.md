@@ -15,7 +15,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Review-only remediation plans. **No remediation actions are executed.**
 - SQLite persistence for incident runs.
 - FastAPI health, create-run, list-runs, detail and report endpoints.
-- All ten inherited data operations fixture scenarios covering pipeline failure, schema drift, null-rate spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and stale dashboard.\n- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.\n- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.\n- CLI/API support for read-only, dry-run and sandbox modes.\n- CI workflow, installation guide and security notes.
+- All ten inherited data operations fixture scenarios covering pipeline failure, schema drift, null-rate spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and stale dashboard.\n- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.\n- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.\n- CLI/API support for read-only, dry-run and sandbox modes.\n- Reproducible fixture benchmark CLI that records fixture hashes and keeps historical results separate.\n- CI workflow, installation guide and security notes.
 
 ## Not implemented yet
 
@@ -37,7 +37,7 @@ python -m pip install -e ".[dev]"
 pytest -q
 ```
 
-Run a sample analysis:
+Run a reproducible fixture benchmark with `opspilot-benchmark --fixtures examples/ops_cases --output artifacts/opspilot_fixture_benchmark.json`.\n\nRun a sample analysis:
 
 ```powershell
 opspilot --target 01_pipeline_failure_stale_dashboard --fixtures examples/ops_cases --db .opspilot/opspilot.sqlite3 --remediation-mode sandbox --output artifacts/demo-result.json
