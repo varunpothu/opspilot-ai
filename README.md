@@ -24,6 +24,10 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Hash-linked per-run audit evidence for lifecycle events, source hashes, policy decisions and triage, with an audit verification API.
 - Optional data-contract checks for required/allowed columns, row-count bounds and per-column null-rate limits.
 - Bounded recent-run metrics summary via GET /api/v1/metrics, including signal counts, duration summaries, review rate and sandbox failure rate.
+- Fail-closed bearer-token authentication with role-based access checks; tokens are configured as SHA-256 hashes with stable actor IDs.
+- Human approval requests with 30-minute expiry, separate requester/approver identity, reason capture and hash-linked decision history. Approval never executes remediation.
+- SQLite-backed API idempotency keys to replay completed run responses without creating duplicate run records.
+- Retry policy with exponential backoff/jitter, process-local retry budget, explicit idempotency requirement and thread-safe circuit breaker primitives.
 - Scheduled CodeQL security-analysis workflow.
 - Research-backed roadmap for further advanced mechanisms.
 
@@ -33,8 +37,12 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Real GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors.
 - LLM-based reasoning or agent orchestration in this new MVP package.
 - Executable sandbox repair, production actions, human approval UI or rollback.
-- Authentication, role-based authorisation, multi-tenant isolation, production deployment or a React dashboard.
+- External identity-provider integration, multi-tenant isolation, production deployment or a React dashboard.
 - External OPA service, OpenTelemetry exporter, signed SLSA attestations or external immutable audit sink.
+
+## API security configuration
+
+The API defaults to requiring bearer authentication for all endpoints except health. Configure OPSPILOT_API_TOKEN_HASHES as a JSON object mapping SHA-256 token hashes to a role and stable actor ID. See [Security and runtime controls](docs/SECURITY_AND_RUNTIME_CONTROLS.md). OPSPILOT_AUTH_MODE=disabled is an explicit local-development bypass only and must not be used for network-exposed deployments.
 
 ## Quick start
 
@@ -75,6 +83,7 @@ Open http://127.0.0.1:8000/docs for the local API docs. Full instructions are in
 - [MVP implementation specification](docs/MVP_IMPLEMENTATION_SPEC.md)
 - [Current implementation status](docs/STATUS.md)
 - [Advanced mechanisms research and roadmap](docs/ADVANCED_MECHANISMS_RESEARCH.md)
+- [Security and runtime controls](docs/SECURITY_AND_RUNTIME_CONTROLS.md)
 - [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
 - [MVP architecture and trust boundaries](docs/architecture/MVP_ARCHITECTURE.md)
 - [Security policy](SECURITY.md)
@@ -82,7 +91,7 @@ Open http://127.0.0.1:8000/docs for the local API docs. Full instructions are in
 
 ## Safety
 
-The current service reads fixture files and stores run records locally. Sandbox mode applies only allowlisted changes to a disposable copy and validates the result. It never executes shell commands or modifies source fixtures. Keep the API on localhost; authentication is not implemented.
+The current service reads fixture files and stores run records locally. Sandbox mode applies only allowlisted changes to a disposable copy and validates the result. It never executes shell commands or modifies source fixtures. Keep the API on localhost. Bearer-token authentication and role checks are implemented, but production identity-provider integration and public deployment hardening are not.
 
 ## Evaluation
 
