@@ -24,6 +24,10 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Hash-linked per-run audit evidence for lifecycle events, source hashes, policy decisions and triage, with an audit verification API.
 - Optional data-contract checks for required/allowed columns, row-count bounds and per-column null-rate limits.
 - Bounded recent-run metrics summary via GET /api/v1/metrics, including signal counts, duration summaries, review rate and sandbox failure rate.
+- Fail-closed bearer-token authentication with viewer/operator/approver/admin roles.
+- Human approval workflow with 30-minute expiry, separate requester/approver identity and hash-linked decision history; approval never executes remediation.
+- SQLite-backed, actor-scoped API idempotency keys.
+- Bounded retry/backoff, process-local retry budget and circuit-breaker primitives for future connectors.
 - Fail-closed bearer-token authentication with role-based access checks; tokens are configured as SHA-256 hashes with stable actor IDs.
 - Human approval requests with 30-minute expiry, separate requester/approver identity, reason capture and hash-linked decision history. Approval never executes remediation.
 - SQLite-backed API idempotency keys to replay completed run responses without creating duplicate run records.
@@ -39,6 +43,10 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Executable sandbox repair, production actions, human approval UI or rollback.
 - External identity-provider integration, multi-tenant isolation, production deployment or a React dashboard.
 - External OPA service, OpenTelemetry exporter, signed SLSA attestations or external immutable audit sink.
+
+## API security configuration
+
+The API defaults to requiring bearer authentication for all endpoints except health. Configure OPSPILOT_API_TOKEN_HASHES as a JSON object mapping SHA-256 token hashes to a role and stable actor ID. See [Security and runtime controls](docs/SECURITY_AND_RUNTIME_CONTROLS.md). OPSPILOT_AUTH_MODE=disabled is an explicit local-development bypass only and must not be used for network-exposed deployments.
 
 ## API security configuration
 
@@ -73,6 +81,12 @@ Start the local API:
 ```powershell
 $env:OPSPILOT_FIXTURE_ROOT = "examples/ops_cases"
 $env:OPSPILOT_DB_PATH = ".opspilot/opspilot.sqlite3"
+$token = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
+$hash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($token))).ToLowerInvariant()
+$tokenMap = @{}; $tokenMap[$hash] = @{ role = "admin"; actor = "local-admin" }
+$env:OPSPILOT_API_TOKEN_HASHES = ($tokenMap | ConvertTo-Json -Compress)
+$env:OPSPILOT_AUTH_MODE = "required"
+Write-Host "Save this API token securely: $token"
 uvicorn opspilot_ai.api:app --host 127.0.0.1 --port 8000
 ```
 
@@ -83,6 +97,7 @@ Open http://127.0.0.1:8000/docs for the local API docs. Full instructions are in
 - [MVP implementation specification](docs/MVP_IMPLEMENTATION_SPEC.md)
 - [Current implementation status](docs/STATUS.md)
 - [Advanced mechanisms research and roadmap](docs/ADVANCED_MECHANISMS_RESEARCH.md)
+- [Security and runtime controls](docs/SECURITY_AND_RUNTIME_CONTROLS.md)
 - [Security and runtime controls](docs/SECURITY_AND_RUNTIME_CONTROLS.md)
 - [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
 - [MVP architecture and trust boundaries](docs/architecture/MVP_ARCHITECTURE.md)
