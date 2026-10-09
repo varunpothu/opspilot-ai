@@ -15,7 +15,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Review-only remediation plans. **No remediation actions are executed.**
 - SQLite persistence for incident runs.
 - FastAPI health, create-run, list-runs, detail and report endpoints.
-- Five inherited-style data operations fixtures covering pipeline failure, schema drift, null-rate spike, volume drop and healthy operation.\n- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.\n- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.\n- CLI/API support for read-only, dry-run and sandbox modes.\n- CI workflow, installation guide and security notes.
+- All ten inherited data operations fixture scenarios covering pipeline failure, schema drift, null-rate spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and stale dashboard.\n- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.\n- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.\n- CLI/API support for read-only, dry-run and sandbox modes.\n- CI workflow, installation guide and security notes.
 
 ## Not implemented yet
 
