@@ -13,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from .connectors import ConnectorError, FixtureConnector
+from .lifecycle import RunLifecycle, RunStatus
 from .models import Evidence, Hypothesis, IncidentResult, RemediationPlan, Signal
 from .sandbox import simulate_sandbox
 
@@ -83,6 +84,7 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
     remediation plans or invoke arbitrary commands.
     """
     started = time.monotonic()
+    lifecycle = RunLifecycle()
     if not _TARGET_RE.fullmatch(target) or target in {".", ".."}:
         raise IncidentInputError("Target must be a simple directory name.")
 
@@ -94,6 +96,7 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
     except ConnectorError as exc:
         raise IncidentInputError(str(exc)) from exc
 
+    lifecycle.transition(RunStatus.RUNNING, "fixture collection and validation completed")
     source = documents["source.json"]
     pipeline = documents["pipeline.json"]
     dashboard = documents["dashboard.json"]
@@ -265,19 +268,30 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
         ))
 
     now = datetime.now(timezone.utc)
+    sandbox_result = simulate_sandbox(target, root) if remediation_mode == "sandbox" else None
+    failed_validation = bool(sandbox_result and sandbox_result.get("status") != "passed")
+    lifecycle.transition(
+        RunStatus.FAILED if failed_validation else RunStatus.SUCCEEDED,
+        "sandbox validation failed" if failed_validation else "analysis and configured validation completed",
+    )
     result = IncidentResult(
-        run_id=str(uuid4()),
+        run_id=lifecycle.run_id,
         target=target,
-        status="completed",
+        status="failed" if failed_validation else "completed",
         created_at=now,
         duration_ms=max(0, int((time.monotonic() - started) * 1000)),
         signals=signals,
         hypotheses=hypotheses,
         remediation_plans=plans,
-        summary=(f"Detected {len(signals)} reliability signal(s)." if signals
-                 else "No configured reliability checks were triggered."),
+        summary=(
+            f"Sandbox validation failed after detecting {len(signals)} signal(s)."
+            if failed_validation else
+            (f"Detected {len(signals)} reliability signal(s)." if signals
+             else "No configured reliability checks were triggered.")
+        ),
         source_hashes=source_hashes,
-        sandbox_result=(simulate_sandbox(target, root) if remediation_mode == "sandbox" else None),
+        sandbox_result=sandbox_result,
+        lifecycle_events=[event.to_dict() for event in lifecycle.events],
     )
     database = Path(db_path).resolve()
     _ensure_database(database)
