@@ -31,13 +31,13 @@ def _auth_config(monkeypatch, tokens: dict[str, dict[str, str]]) -> None:
     monkeypatch.setenv("OPSPILOT_API_TOKEN_HASHES", json.dumps(records))
 
 
-def _write_fixture(root: Path, name: str) -> None:
+def _write_fixture(root: Path, name: str, status: str = "success") -> None:
     target = root / name
     target.mkdir(parents=True)
     (target / "source.json").write_text(json.dumps({
         "updated_at": "2026-10-09T10:00:00Z", "row_count": 100, "schema": ["id"],
     }), encoding="utf-8")
-    (target / "pipeline.json").write_text(json.dumps({"status": "success", "duration_minutes": 1}), encoding="utf-8")
+    (target / "pipeline.json").write_text(json.dumps({"status": status, "duration_minutes": 1}), encoding="utf-8")
     (target / "dashboard.json").write_text(json.dumps({"updated_at": "2026-10-09T10:05:00Z"}), encoding="utf-8")
     (target / "baseline.json").write_text(json.dumps({
         "schema": ["id"], "row_count": 100, "freshness_sla_hours": 24,
@@ -115,8 +115,10 @@ def test_approval_requires_separate_approver_and_has_verifiable_events(tmp_path)
     run = SimpleNamespace(
         audit_chain=build_audit_chain(
             "run-1", [{"status": "succeeded"}], {"source.json": "a" * 64},
-            {"execution_permitted": False}, {"priority": "P3"},
-        )
+            {"execution_permitted": False}, {"priority": "P2"},
+        ),
+        status="completed", remediation_plans=[{"title": "review"}],
+        policy_decision={"human_approval_required": True},
     )
     db = tmp_path / "approvals.sqlite3"
     approval = create_approval(db, "run-1", "operator-1", "Review proposed recovery plan", run)
@@ -138,7 +140,7 @@ def test_approval_api_enforces_actor_separation_and_role(tmp_path, monkeypatch):
 
     fixtures = tmp_path / "fixtures"
     fixtures.mkdir()
-    _write_fixture(fixtures, "approval_case")
+    _write_fixture(fixtures, "approval_case", status="failed")
     monkeypatch.setattr(api_module, "FIXTURE_ROOT", fixtures)
     monkeypatch.setattr(api_module, "DB_PATH", tmp_path / "approval-api.sqlite3")
     _auth_config(monkeypatch, {
