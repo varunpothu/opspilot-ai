@@ -55,6 +55,12 @@ def simulate_sandbox(target: str, fixture_root: str | Path) -> dict[str, Any]:
         if isinstance(source.get("updated_at"), str):
             dashboard["updated_at"] = source["updated_at"]
             changes.append("aligned dashboard timestamp with source in sandbox")
+        if isinstance(source.get("metrics"), dict):
+            dashboard["metrics"] = dict(source["metrics"])
+            changes.append("regenerated dashboard metrics from source in sandbox")
+        if isinstance(dashboard.get("age_minutes"), (int, float)):
+            dashboard["age_minutes"] = 0
+            changes.append("refreshed dashboard age in sandbox")
 
         for filename, document in (
             ("source.json", source),
@@ -79,6 +85,16 @@ def simulate_sandbox(target: str, fixture_root: str | Path) -> dict[str, Any]:
                 not isinstance(repaired_source.get("updated_at"), str)
                 or not isinstance(repaired_dashboard.get("updated_at"), str)
                 or repaired_dashboard["updated_at"] >= repaired_source["updated_at"]
+            ),
+            "dashboard_metrics_match_source": (
+                not isinstance(repaired_source.get("metrics"), dict)
+                or not isinstance(repaired_dashboard.get("metrics"), dict)
+                or repaired_dashboard["metrics"] == repaired_source["metrics"]
+            ),
+            "dashboard_within_age_limit": (
+                not isinstance(repaired_dashboard.get("age_minutes"), (int, float))
+                or not isinstance(repaired_dashboard.get("expected_max_age_minutes"), (int, float))
+                or repaired_dashboard["age_minutes"] <= repaired_dashboard["expected_max_age_minutes"]
             ),
         }
         after_sandbox = _hashes(sandbox)
