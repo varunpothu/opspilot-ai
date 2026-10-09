@@ -1,0 +1,12 @@
+{
+  "row_count": 10000,
+  "schema": [
+    "id",
+    "date",
+    "sales"
+  ],
+  "null_rates": {
+    "sales": 0.01
+  },
+  "pipeline_duration_slo_minutes": 60
+}

@@ -1,0 +1,18 @@
+{
+  "row_count": 10100,
+  "schema": [
+    "id",
+    "date",
+    "sales",
+    "currency"
+  ],
+  "null_rates": {
+    "sales": 0.02
+  },
+  "metrics": {
+    "revenue": 126000,
+    "orders": 1010
+  },
+  "age_minutes": 8,
+  "freshness_sla_minutes": 30
+}

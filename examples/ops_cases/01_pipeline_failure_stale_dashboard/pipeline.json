@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "failed_stage": "daily_transform",
+  "error": "warehouse timeout",
+  "duration_minutes": 9
+}

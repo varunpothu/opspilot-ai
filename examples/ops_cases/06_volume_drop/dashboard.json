@@ -1,0 +1,8 @@
+{
+  "metrics": {
+    "revenue": 52000,
+    "orders": 410
+  },
+  "age_minutes": 5,
+  "expected_max_age_minutes": 30
+}
