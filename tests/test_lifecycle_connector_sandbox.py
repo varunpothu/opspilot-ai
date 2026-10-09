@@ -69,3 +69,44 @@ def test_sandbox_rejects_symlink_escape(tmp_path: Path) -> None:
     (root / "escape" / "source.json").symlink_to(outside / "source.json")
     with pytest.raises(ConnectorError):
         FixtureConnector(root).collect("escape")
+
+
+def test_inherited_fixture_scenarios_cover_distinct_signals(tmp_path: Path) -> None:
+    import shutil
+
+    fixtures = Path(__file__).parents[1] / "examples" / "ops_cases"
+    expected = {
+        "01_pipeline_failure_stale_dashboard": {"pipeline_failure", "dashboard_mismatch", "stale_dashboard"},
+        "02_schema_drift": {"schema_drift"},
+        "03_null_spike": {"null_rate_spike"},
+        "06_volume_drop": {"volume_anomaly"},
+        "08_healthy": set(),
+    }
+    for case, expected_types in expected.items():
+        result = __import__("opspilot_ai.service", fromlist=["analyze_fixture"]).analyze_fixture(
+            case, fixtures, tmp_path / f"{case}.sqlite3"
+        )
+        observed = {signal.signal_type for signal in result.signals}
+        assert expected_types <= observed
+        if case == "08_healthy":
+            assert observed == set()
+
+
+def test_inherited_fixture_sandbox_repairs_dashboard_on_copy(tmp_path: Path) -> None:
+    import shutil
+
+    fixtures = Path(__file__).parents[1] / "examples" / "ops_cases"
+    original = fixtures / "01_pipeline_failure_stale_dashboard"
+    copied_root = tmp_path / "fixtures"
+    copied_root.mkdir()
+    copied_case = copied_root / original.name
+    shutil.copytree(original, copied_case)
+    before = {p.name: p.read_bytes() for p in copied_case.iterdir()}
+
+    result = simulate_sandbox(original.name, copied_root)
+
+    assert result["status"] == "passed"
+    assert result["original_files_unchanged"] is True
+    assert result["checks"]["dashboard_metrics_match_source"] is True
+    assert result["checks"]["dashboard_within_age_limit"] is True
+    assert before == {p.name: p.read_bytes() for p in copied_case.iterdir()}
