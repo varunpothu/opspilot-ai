@@ -58,3 +58,5 @@ class IncidentResult(BaseModel):
     hypotheses: list[Hypothesis] = Field(default_factory=list)
     remediation_plans: list[RemediationPlan] = Field(default_factory=list)
     summary: str
+    source_hashes: dict[str, str] = Field(default_factory=dict)
+    sandbox_result: dict[str, Any] | None = None
