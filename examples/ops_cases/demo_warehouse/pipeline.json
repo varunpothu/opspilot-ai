@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "job_name": "orders_daily",
+  "error": "Upstream extract timed out",
+  "finished_at": "2026-10-09T10:04:00Z"
+}
