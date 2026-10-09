@@ -1,0 +1,5 @@
+{
+  "updated_at": "2026-10-09T10:00:00Z",
+  "row_count": 8200,
+  "schema": ["order_id", "customer_id", "amount", "created_at"]
+}
