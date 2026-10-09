@@ -24,10 +24,10 @@ If PowerShell blocks activation, use the Python executable inside `.venv\Scripts
 ## Run a sample analysis
 
 ```powershell
-opspilot --target demo_warehouse --fixtures examples/ops_cases --db .opspilot/opspilot.sqlite3 --output artifacts/demo-result.json
+opspilot --target 01_pipeline_failure_stale_dashboard --fixtures examples/ops_cases --db .opspilot/opspilot.sqlite3 --remediation-mode sandbox --output artifacts/demo-result.json
 ```
 
-The command prints a JSON result and optionally writes the same result to the output path. The source fixture files are read-only.
+The command prints a JSON result and optionally writes the same result to the output path. In sandbox mode, changes are applied only to a temporary copy, then validated. Original fixture bytes are checked for integrity. No shell commands or production writes are used.
 
 ## Start the API
 
@@ -54,7 +54,7 @@ Invoke-RestMethod "http://127.0.0.1:8000/api/v1/runs/$($result.run_id)"
 - `OPSPILOT_FIXTURE_ROOT`: directory containing one folder per fixture.
 - `OPSPILOT_DB_PATH`: local SQLite database path.
 
-The API accepts only the fixture connector and `read_only` or `dry_run` modes. It creates remediation plans but does not execute them.
+The API accepts only the fixture connector and `read_only`, `dry_run` or `sandbox` modes. Sandbox mode performs allowlisted JSON fixture changes on a disposable copy and reports validation. It never executes shell commands or writes to production.
 
 ## Tests and current limits
 
