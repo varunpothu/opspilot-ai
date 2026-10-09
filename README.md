@@ -22,6 +22,8 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Fail-closed, versioned policy evaluation with risk scoring, human-review flags and blocked high-impact actions.
 - Deterministic P1-P4 incident triage, stable fingerprints, correlation patterns and recommended investigation steps.
 - Hash-linked per-run audit evidence for lifecycle events, source hashes, policy decisions and triage, with an audit verification API.
+- Optional data-contract checks for required/allowed columns, row-count bounds and per-column null-rate limits.
+- Bounded recent-run metrics summary via GET /api/v1/metrics, including signal counts, duration summaries, review rate and sandbox failure rate.
 - Scheduled CodeQL security-analysis workflow.
 - Research-backed roadmap for further advanced mechanisms.
 
