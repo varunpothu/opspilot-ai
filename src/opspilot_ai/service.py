@@ -13,6 +13,9 @@ from typing import Any
 from uuid import uuid4
 
 from .connectors import ConnectorError, FixtureConnector
+from .audit import build_audit_chain
+from .policy import evaluate_run_policy
+from .triage import assess_incident
 from .lifecycle import RunLifecycle, RunStatus
 from .models import Evidence, Hypothesis, IncidentResult, RemediationPlan, Signal
 from .sandbox import simulate_sandbox
@@ -268,6 +271,8 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
         ))
 
     now = datetime.now(timezone.utc)
+    triage = assess_incident(target, signals)
+    policy_decision = evaluate_run_policy(signals, remediation_mode)
     sandbox_result = simulate_sandbox(target, root) if remediation_mode == "sandbox" else None
     failed_validation = bool(sandbox_result and sandbox_result.get("status") != "passed")
     lifecycle.transition(
@@ -292,6 +297,9 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
         source_hashes=source_hashes,
         sandbox_result=sandbox_result,
         lifecycle_events=[event.to_dict() for event in lifecycle.events],
+        triage=triage,
+        policy_decision=policy_decision,
+        audit_chain=build_audit_chain(lifecycle.run_id, [event.to_dict() for event in lifecycle.events], source_hashes, policy_decision, triage),
     )
     database = Path(db_path).resolve()
     _ensure_database(database)
