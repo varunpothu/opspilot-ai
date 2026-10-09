@@ -1,0 +1,5 @@
+{
+  "schema": ["order_id", "customer_id", "amount", "created_at"],
+  "row_count": 10000,
+  "freshness_sla_hours": 24
+}
