@@ -1,0 +1,6 @@
+{
+  "status": "failed",
+  "failed_stage": "publish",
+  "error": "schema validation blocked publish",
+  "duration_minutes": 88
+}
