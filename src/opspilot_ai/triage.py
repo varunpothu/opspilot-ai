@@ -47,6 +47,8 @@ def assess_incident(target: str, signals: list[Any]) -> dict[str, Any]:
         next_steps.append("Reconcile source and dashboard metric snapshots and verify transformation lineage.")
     if "slow_pipeline" in types:
         next_steps.append("Compare recorded duration against the SLO and inspect the slowest stage.")
+    if "data_contract_violation" in types:
+        next_steps.append("Validate the versioned data contract and quarantine non-conforming records before publication.")
     if not next_steps:
         next_steps.append("No configured incident signal was detected; continue routine monitoring.")
     return {
