@@ -115,3 +115,19 @@ def test_inherited_fixture_sandbox_repairs_dashboard_on_copy(tmp_path: Path) -> 
     assert result["checks"]["dashboard_metrics_match_source"] is True
     assert result["checks"]["dashboard_within_age_limit"] is True
     assert before == {p.name: p.read_bytes() for p in copied_case.iterdir()}
+
+
+def test_benchmark_is_versioned_and_preserves_fixture_hashes(tmp_path: Path) -> None:
+    from opspilot_ai.benchmark import run_benchmark
+
+    fixtures = Path(__file__).parents[1] / "examples" / "ops_cases"
+    output = tmp_path / "benchmark.json"
+    report = run_benchmark(fixtures, output)
+    saved = json.loads(output.read_text(encoding="utf-8"))
+
+    assert report["fixture_count"] == 11
+    assert report["completed_runs"] == 11
+    assert report["failed_runs"] == 0
+    assert saved["benchmark_name"] == "opspilot-fixture-operations"
+    assert all(row["fixture_sha256"] for row in saved["cases"])
+    assert any("not production accuracy" in item.lower() for item in saved["limitations"])
