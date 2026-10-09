@@ -34,7 +34,17 @@
 - API verification endpoint: GET /api/v1/runs/{run_id}/audit/verify.
 - Limitation: chain is stored alongside the report and is not signed or anchored in an external append-only ledger. A database administrator could replace the whole chain; this is tamper-evidence, not non-repudiation.
 
-### 4. Testable controls
+### 4. Data-contract validation
+- Optional baseline data contract checks for required columns, allowed columns, minimum/maximum row count and per-column null-rate ceilings.
+- Contract violations become evidence-linked high-severity signals and contribute to triage.
+- Constraints are opt-in so existing fixtures retain their previous behaviour.
+
+### 5. Bounded operational metrics
+- GET /api/v1/metrics summarises up to the latest 100 persisted runs with status counts, signal counts, latency summaries, human-review rate and sandbox failure rate.
+- Avoids exposing run IDs as metric labels.
+- It is a JSON snapshot, not an OpenTelemetry exporter, Prometheus endpoint, rolling SLO or error-budget burn-rate calculator.
+
+### 6. Testable controls
 - Unit tests exercise policy default-deny behavior, stable fingerprints, correlation rules and audit-chain tamper detection.
 - API report includes triage, policy and audit evidence.
 
