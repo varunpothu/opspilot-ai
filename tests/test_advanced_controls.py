@@ -63,3 +63,45 @@ def test_empty_audit_chain_fails_closed():
     assert report["valid"] is False
     assert report["record_count"] == 0
     assert "empty_chain" in report["errors"]
+
+
+def test_data_contract_checks_required_columns_row_bounds_and_null_limits():
+    from opspilot_ai.quality import evaluate_data_contract
+
+    source = {
+        "schema": ["id", "extra"],
+        "row_count": 4,
+        "null_rates": {"email": 0.2},
+    }
+    baseline = {"data_contract": {
+        "required_columns": ["id", "email"],
+        "allowed_columns": ["id", "email"],
+        "min_row_count": 10,
+        "max_null_rates": {"email": 0.05},
+    }}
+    violations = evaluate_data_contract(source, baseline)
+    rules = {item["rule"] for item in violations}
+    assert rules == {"required_columns", "allowed_columns", "min_row_count", "max_null_rate"}
+
+
+def test_data_contract_is_optional_and_ignores_unconfigured_fields():
+    from opspilot_ai.quality import evaluate_data_contract
+
+    assert evaluate_data_contract({"schema": ["id"], "row_count": 1}, {}) == []
+
+
+def test_metrics_summary_has_bounded_scope_and_no_run_id_labels():
+    from types import SimpleNamespace
+    from opspilot_ai.observability import summarize_runs
+
+    run = SimpleNamespace(
+        status="completed", duration_ms=20, policy_decision={"human_approval_required": True},
+        sandbox_result=None,
+        signals=[SimpleNamespace(signal_type="schema_drift", severity="high")],
+    )
+    summary = summarize_runs([run])
+    assert summary["sample_size"] == 1
+    assert summary["signal_counts_by_type"] == {"schema_drift": 1}
+    assert summary["human_review_rate"] == 1.0
+    assert "scope" in summary
+    assert "run_id" not in summary
