@@ -48,7 +48,7 @@ def _token_records() -> dict[str, dict[str, str]]:
             raise HTTPException(status_code=503, detail="API token configuration has an invalid entry")
         role = value.get("role")
         actor = value.get("actor")
-        if role not in _ROLE_PERMISSIONS or not isinstance(actor, str) or not actor.strip():
+        if not isinstance(role, str) or role not in _ROLE_PERMISSIONS or not isinstance(actor, str) or not actor.strip():
             raise HTTPException(status_code=503, detail="API token configuration has an invalid role or actor")
         records[digest.lower()] = {"role": role, "actor": actor.strip()}
     return records
