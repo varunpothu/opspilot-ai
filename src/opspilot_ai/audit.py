@@ -58,9 +58,20 @@ def verify_audit_chain(records: list[dict[str, Any]]) -> dict[str, Any]:
             run_id = record.get("run_id")
         elif record.get("run_id") != run_id:
             errors.append(f"run_id_mismatch:{expected_sequence}")
-        body = {key: record.get(key) for key in ("sequence", "run_id", "previous_hash", "event_type", "payload")}
+        body = {
+            key: record.get(key)
+            for key in ("sequence", "run_id", "previous_hash", "event_type", "payload")
+        }
         expected_hash = hashlib.sha256(_canonical(body).encode("utf-8")).hexdigest()
         if record.get("record_hash") != expected_hash:
             errors.append(f"record_hash_mismatch:{expected_sequence}")
         previous_hash = str(record.get("record_hash", ""))
-    if not records:\n        errors.append("empty_chain")\n    return {"valid": bool(records) and not errors, "record_count": len(records), "run_id": run_id, "head_hash": previous_hash if records else GENESIS, "errors": errors}
+    if not records:
+        errors.append("empty_chain")
+    return {
+        "valid": bool(records) and not errors,
+        "record_count": len(records),
+        "run_id": run_id,
+        "head_hash": previous_hash if records else GENESIS,
+        "errors": errors,
+    }
