@@ -58,7 +58,8 @@ def test_audit_chain_verifies_and_detects_tampering():
     assert any("record_hash_mismatch" in error for error in report["errors"])
 
 
-def test_empty_audit_chain_is_valid_but_explicitly_empty():
+def test_empty_audit_chain_fails_closed():
     report = verify_audit_chain([])
-    assert report["valid"] is True
+    assert report["valid"] is False
     assert report["record_count"] == 0
+    assert "empty_chain" in report["errors"]
