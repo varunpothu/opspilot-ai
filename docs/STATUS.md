@@ -21,6 +21,10 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Optional baseline-driven data contracts for required/allowed columns, row-count bounds and null-rate ceilings.
 - Bounded recent-run JSON metrics summary endpoint; explicitly not an OpenTelemetry exporter or rolling SLO calculator.
 - Bearer-token authentication with viewer/operator/approver/admin roles and default-required authentication.
+- Human approval request/decision workflow with separate requester and approver, expiry, reason capture and hash-linked events; approval is review-only.
+- Actor-scoped SQLite idempotency for API run creation.
+- Bounded retry/backoff, process-local retry budget and circuit-breaker primitives; no production connector uses them yet.
+- Bearer-token authentication with viewer/operator/approver/admin roles and default-required authentication.
 - Approval request/decision workflow with separate requester and approver, expiry, reason capture and hash-linked events; approval is review-only.
 - Actor-scoped SQLite idempotency for API run creation.
 - Bounded retry/backoff, process-local retry budget, and closed/open/half-open circuit-breaker primitives; no production connector uses them yet.
