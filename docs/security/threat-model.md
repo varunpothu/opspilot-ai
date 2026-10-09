@@ -32,14 +32,19 @@ This threat model covers the local fixture-backed MVP. It does not cover product
 | Malformed JSON or invalid Unicode | Controlled connector error |
 | Unsupported connector or remediation mode | Pydantic literal allowlists |
 | Prompt-injected command in fixture text | No LLM is invoked and no shell commands are executed |
-| Accidental production mutation | No production connector; sandbox writes only to a disposable copy |
+| Accidental production mutation | No production connector; sandbox writes only to a disposable copy; approval decisions never execute actions |
+| Unauthenticated API access | Authentication required by default except health; explicit local-dev bypass documented |
+| Privilege escalation via endpoint guessing | Permission checks on read, run, request approval and decide approval endpoints |
+| Self-approval | Requester actor must differ from approver actor |
+| Duplicate run requests | Optional actor-scoped, SQLite-backed idempotency reservation |
+| Retry storm against a failing dependency | Bounded retries, shared process-local budget and circuit-breaker primitives for future connectors |
 | False success after failed validation | Failed sandbox validation transitions the run to failed |
 | Historical benchmark contamination | New benchmark output is separate and includes fixture hashes |
 
 ## Known gaps
 
-- No authentication, authorization or user identity.
-- No rate limiting, concurrency limits or request idempotency key.
+- Static bearer-token authentication is implemented, but no external identity provider, token expiry/rotation service, rate limiting or multi-tenant isolation.
+- Idempotency is optional and scoped to one SQLite database; a distributed multi-region guarantee is not provided.
 - No retention/cleanup command for local SQLite history.
 - No secret redaction layer is needed for the current fixture-only schema, but must be added before collecting real logs or credentials.
 - No external dependency or secret scanning step in CI yet.
@@ -48,4 +53,4 @@ This threat model covers the local fixture-backed MVP. It does not cover product
 
 ## Production gate
 
-Do not expose this API to a public network or connect it to production systems until authentication, authorization, least-privilege connector credentials, request limits, audit identity, secret redaction, monitoring, retention, threat review and integration-specific security tests are implemented.
+Do not expose this API publicly or connect it to production systems until external identity-provider integration, token rotation, request limits, least-privilege connector credentials, external immutable audit storage, secret redaction, monitoring, retention, threat review and integration-specific security tests are implemented.
