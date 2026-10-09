@@ -14,7 +14,7 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Read-only fixture connector with target/path validation, required-file allowlist and per-file size limit.
 - Disposable sandbox simulation with allowlisted JSON changes, post-repair checks, zero production writes and an assertion that original fixture bytes remain unchanged.
 - All ten inherited operations fixture scenarios: pipeline failure, schema drift, null spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and dashboard-stale-only.
-- CI across Python 3.11 and 3.12.
+- Reproducible fixture benchmark CLI recording fixture SHA-256 hashes, code version and run summaries.\n- CI across Python 3.11 and 3.12, including benchmark artifact generation and upload.
 
 ## Not yet migrated from RepoSentinel.zip
 
