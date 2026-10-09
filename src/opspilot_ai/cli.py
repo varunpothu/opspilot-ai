@@ -15,9 +15,10 @@ def main() -> int:
     parser.add_argument("--fixtures", default=os.getenv("OPSPILOT_FIXTURE_ROOT", "examples/ops_cases"))
     parser.add_argument("--db", default=os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.sqlite3"))
     parser.add_argument("--output", help="Optional path for a JSON result export")
+    parser.add_argument("--remediation-mode", choices=("read_only", "dry_run", "sandbox"), default="dry_run", help="Sandbox only edits a disposable fixture copy and validates it")
     args = parser.parse_args()
     try:
-        result = analyze_fixture(args.target, Path(args.fixtures), Path(args.db))
+        result = analyze_fixture(args.target, Path(args.fixtures), Path(args.db), args.remediation_mode)
     except IncidentInputError as exc:
         parser.error(str(exc))
     rendered = result.model_dump_json(indent=2)
