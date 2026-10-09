@@ -70,3 +70,36 @@ opspilot-benchmark --fixtures examples/ops_cases --output artifacts/opspilot_fix
 ```
 
 The benchmark records the OpsPilot version, generation timestamp, each fixture file's SHA-256 hash, detected signal types and run durations. It does not overwrite inherited RepoSentinel artifacts and does not claim production accuracy. The generated `artifacts/` directory is ignored by Git by default.
+
+
+## API authentication and role configuration
+
+Authentication is required by default. Create a high-entropy token for each service or operator, then store only its SHA-256 digest in the environment configuration. The configuration is a JSON object mapping each digest to a role and stable actor ID.
+
+Generate a token hash in PowerShell:
+
+```powershell
+$token = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($token)
+$sha = [System.Security.Cryptography.SHA256]::Create()
+$hash = [Convert]::ToHexString($sha.ComputeHash($bytes)).ToLowerInvariant()
+$token  # Save securely in your secret manager; do not commit it
+$hash
+```
+
+Configure the API process with the hash, never the raw token:
+
+```powershell
+$env:OPSPILOT_API_TOKEN_HASHES = '{"REPLACE_WITH_SHA256_HASH":{"role":"admin","actor":"local-admin"}}'
+$env:OPSPILOT_AUTH_MODE = "required"
+uvicorn opspilot_ai.api:app --host 127.0.0.1 --port 8000
+```
+
+Roles: viewer reads; operator reads, runs analyses and requests approval; approver reads and decides approval requests; admin can do all of these. Requesters cannot approve their own requests. The health endpoint is public. OPSPILOT_AUTH_MODE=disabled is for local unit tests/development only and must never be used on an exposed service.
+
+## API safety controls
+
+- Add Authorization: Bearer <token> to protected requests.
+- Optional Idempotency-Key on POST /api/v1/runs prevents duplicate run records for matching requests and replays the first response.
+- POST /api/v1/runs/{run_id}/approvals opens a 30-minute review request; POST /api/v1/approvals/{approval_id}/decision records an approved/rejected decision. Neither endpoint executes a plan.
+- Retry/circuit-breaker primitives are not wired to any real connector in this fixture-only MVP.
