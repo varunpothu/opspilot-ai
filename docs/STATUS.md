@@ -18,6 +18,8 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Versioned fail-closed policy evaluator with severity-based risk score, review flags and blocked high-impact actions.
 - Deterministic P1–P4 triage, incident fingerprints and rule-based signal correlation.
 - Per-run hash-linked audit chain with verification endpoint and tamper-detection tests.
+- Optional baseline-driven data contracts for required/allowed columns, row-count bounds and null-rate ceilings.
+- Bounded recent-run JSON metrics summary endpoint; explicitly not an OpenTelemetry exporter or rolling SLO calculator.
 - Advanced-mechanisms research roadmap covering OWASP, OPA, OpenTelemetry, SLSA and NIST AI RMF.
 - Scheduled CodeQL security analysis workflow (workflow committed; scan result depends on GitHub Actions execution).\n- CI across Python 3.11 and 3.12, including benchmark artifact generation and upload.
 
