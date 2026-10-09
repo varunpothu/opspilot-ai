@@ -149,6 +149,60 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
             "dashboard.json", "Dashboard timestamp precedes the source update timestamp.",
         ))
 
+    # Compatibility checks for the inherited RepoSentinel operations fixtures.
+    # These remain deterministic observations, not inferred production telemetry.
+    age_minutes = source.get("age_minutes")
+    freshness_limit = source.get("freshness_sla_minutes")
+    if isinstance(age_minutes, (int, float)) and isinstance(freshness_limit, (int, float)) and age_minutes > freshness_limit:
+        signals.append(_signal(
+            "stale_data", "high" if age_minutes > freshness_limit * 2 else "medium",
+            "Source age exceeds its freshness SLA", "source.age_minutes",
+            age_minutes, freshness_limit, "source.json",
+            "Compared fixture source age with freshness_sla_minutes.",
+        ))
+
+    dashboard_age = dashboard.get("age_minutes")
+    dashboard_limit = dashboard.get("expected_max_age_minutes")
+    if isinstance(dashboard_age, (int, float)) and isinstance(dashboard_limit, (int, float)) and dashboard_age > dashboard_limit:
+        signals.append(_signal(
+            "stale_dashboard", "high" if dashboard_age > dashboard_limit * 2 else "medium",
+            "Dashboard age exceeds its freshness limit", "dashboard.age_minutes",
+            dashboard_age, dashboard_limit, "dashboard.json",
+            "Compared dashboard age with expected_max_age_minutes.",
+        ))
+
+    source_metrics = source.get("metrics")
+    dashboard_metrics = dashboard.get("metrics")
+    if isinstance(source_metrics, dict) and isinstance(dashboard_metrics, dict) and source_metrics != dashboard_metrics:
+        signals.append(_signal(
+            "dashboard_mismatch", "high", "Dashboard metrics differ from source metrics",
+            "dashboard.metrics", dashboard_metrics, source_metrics, "dashboard.json",
+            "Compared the dashboard metric snapshot with the source metric snapshot.",
+        ))
+
+    null_rates = source.get("null_rates")
+    baseline_null_rates = baseline.get("null_rates")
+    if isinstance(null_rates, dict) and isinstance(baseline_null_rates, dict):
+        for column, observed_rate in null_rates.items():
+            expected_rate = baseline_null_rates.get(column)
+            if isinstance(observed_rate, (int, float)) and isinstance(expected_rate, (int, float)):
+                if observed_rate > max(expected_rate * 3, expected_rate + 0.05):
+                    signals.append(_signal(
+                        "null_rate_spike", "high", f"Null rate increased for {column}",
+                        f"source.null_rates.{column}", observed_rate, expected_rate, "source.json",
+                        f"Observed null rate is materially above the baseline for {column}.",
+                    ))
+
+    duration = pipeline.get("duration_minutes")
+    duration_limit = baseline.get("pipeline_duration_slo_minutes")
+    if isinstance(duration, (int, float)) and isinstance(duration_limit, (int, float)) and duration > duration_limit:
+        signals.append(_signal(
+            "slow_pipeline", "medium" if duration <= duration_limit * 2 else "high",
+            "Pipeline duration exceeds its SLO", "pipeline.duration_minutes",
+            duration, duration_limit, "pipeline.json",
+            "Compared pipeline duration with pipeline_duration_slo_minutes.",
+        ))
+
     hypotheses: list[Hypothesis] = []
     by_type = {s.signal_type: s for s in signals}
     if "pipeline_failure" in by_type:
@@ -166,8 +220,27 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
     if "stale_data" in by_type:
         hypotheses.append(Hypothesis(
             title="Delayed or stalled data ingestion",
-            explanation="The latest source timestamp exceeds the configured freshness SLA. Check upstream arrival and pipeline scheduling.",
+            explanation="The source age exceeds its configured freshness SLA. Check upstream arrival and pipeline scheduling.",
             confidence=0.7, supporting_signal_ids=[by_type["stale_data"].id],
+        ))
+    if "dashboard_mismatch" in by_type:
+        hypotheses.append(Hypothesis(
+            title="Dashboard snapshot is inconsistent with source metrics",
+            explanation="The recorded dashboard metric snapshot differs from the source fixture. Review refresh scheduling and transformation lineage.",
+            confidence=0.8, supporting_signal_ids=[by_type["dashboard_mismatch"].id],
+        ))
+    if "null_rate_spike" in by_type:
+        matching = [signal.id for signal in signals if signal.signal_type == "null_rate_spike"]
+        hypotheses.append(Hypothesis(
+            title="Upstream data quality regression",
+            explanation="One or more source null rates materially exceed their configured baseline.",
+            confidence=0.75, supporting_signal_ids=matching,
+        ))
+    if "slow_pipeline" in by_type:
+        hypotheses.append(Hypothesis(
+            title="Pipeline performance regression",
+            explanation="Recorded pipeline duration exceeds the fixture's configured SLO. Inspect upstream waits and expensive transformation stages.",
+            confidence=0.65, supporting_signal_ids=[by_type["slow_pipeline"].id],
         ))
     if not hypotheses and signals:
         hypotheses.append(Hypothesis(
