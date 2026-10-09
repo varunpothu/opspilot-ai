@@ -201,3 +201,22 @@ def test_api_audit_verification_and_policy_report(tmp_path: Path, monkeypatch) -
     assert verified.json()["valid"] is True
     report = client.get(f"/api/v1/runs/{run_id}/report").json()
     assert report["policy_decision"]["production_writes_permitted"] is False
+
+
+def test_api_metrics_endpoint_returns_bounded_summary(tmp_path: Path, monkeypatch) -> None:
+    import opspilot_ai.api as api_module
+
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    write_fixture(fixtures, "metrics_api")
+    monkeypatch.setattr(api_module, "FIXTURE_ROOT", fixtures)
+    monkeypatch.setattr(api_module, "DB_PATH", tmp_path / "metrics.sqlite3")
+    client = TestClient(api_module.app)
+    created = client.post("/api/v1/runs", json={"target": "metrics_api", "remediation_mode": "read_only"})
+    assert created.status_code == 201
+    metrics = client.get("/api/v1/metrics")
+    assert metrics.status_code == 200
+    body = metrics.json()
+    assert body["sample_size"] == 1
+    assert body["run_status_counts"] == {"completed": 1}
+    assert "limitations" in body
