@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from . import __version__
 from .service import IncidentInputError, analyze_fixture, get_run, list_runs
 from .audit import verify_audit_chain
+from .observability import summarize_runs
 
 FIXTURE_ROOT = Path(os.getenv("OPSPILOT_FIXTURE_ROOT", "examples/ops_cases")).resolve()
 DB_PATH = Path(os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.sqlite3")).resolve()
@@ -82,3 +83,10 @@ def verify_run_audit(run_id: str):
     if result is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return verify_audit_chain(result.audit_chain)
+
+
+@app.get("/api/v1/metrics")
+def metrics():
+    recent = list_runs(DB_PATH, limit=100)
+    results = [get_run(item["run_id"], DB_PATH) for item in recent]
+    return summarize_runs([result for result in results if result is not None])
