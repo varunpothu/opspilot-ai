@@ -71,7 +71,7 @@ def test_sandbox_rejects_symlink_escape(tmp_path: Path) -> None:
         FixtureConnector(root).collect("escape")
 
 
-def test_inherited_fixture_scenarios_cover_distinct_signals(tmp_path: Path) -> None:
+def test_all_ten_inherited_fixture_scenarios_cover_distinct_signals(tmp_path: Path) -> None:
     import shutil
 
     fixtures = Path(__file__).parents[1] / "examples" / "ops_cases"
@@ -79,13 +79,18 @@ def test_inherited_fixture_scenarios_cover_distinct_signals(tmp_path: Path) -> N
         "01_pipeline_failure_stale_dashboard": {"pipeline_failure", "dashboard_mismatch", "stale_dashboard"},
         "02_schema_drift": {"schema_drift"},
         "03_null_spike": {"null_rate_spike"},
+        "04_dashboard_mismatch": {"dashboard_mismatch"},
+        "05_freshness_sla": {"stale_data", "stale_dashboard", "slow_pipeline"},
         "06_volume_drop": {"volume_anomaly"},
+        "07_multiple_incident": {"pipeline_failure", "schema_drift", "null_rate_spike", "volume_anomaly"},
         "08_healthy": set(),
+        "09_slow_pipeline": {"slow_pipeline"},
+        "10_dashboard_stale_only": {"stale_dashboard"},
     }
+    from opspilot_ai.service import analyze_fixture
+
     for case, expected_types in expected.items():
-        result = __import__("opspilot_ai.service", fromlist=["analyze_fixture"]).analyze_fixture(
-            case, fixtures, tmp_path / f"{case}.sqlite3"
-        )
+        result = analyze_fixture(case, fixtures, tmp_path / f"{case}.sqlite3")
         observed = {signal.signal_type for signal in result.signals}
         assert expected_types <= observed
         if case == "08_healthy":
