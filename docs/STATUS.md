@@ -20,6 +20,10 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Per-run hash-linked audit chain with verification endpoint and tamper-detection tests.
 - Optional baseline-driven data contracts for required/allowed columns, row-count bounds and null-rate ceilings.
 - Bounded recent-run JSON metrics summary endpoint; explicitly not an OpenTelemetry exporter or rolling SLO calculator.
+- Bearer-token authentication with viewer/operator/approver/admin roles and default-required authentication.
+- Approval request/decision workflow with separate requester and approver, expiry, reason capture and hash-linked events; approval is review-only.
+- Actor-scoped SQLite idempotency for API run creation.
+- Bounded retry/backoff, process-local retry budget, and closed/open/half-open circuit-breaker primitives; no production connector uses them yet.
 - Advanced-mechanisms research roadmap covering OWASP, OPA, OpenTelemetry, SLSA and NIST AI RMF.
 - Scheduled CodeQL security analysis workflow (workflow committed; scan result depends on GitHub Actions execution).\n- CI across Python 3.11 and 3.12, including benchmark artifact generation and upload.
 
@@ -34,16 +38,16 @@ The original benchmark results have not been rerun against this MVP and must not
 - Execution of the original 16-agent OpsWorkflow through the new run service.
 - Real GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors.
 - LLM-based reasoning in the new MVP package.
-- Production repair, shell execution, public deployment, authentication, multi-tenancy or approval UI.
+- Production repair, shell execution, public deployment, external identity-provider integration, multi-tenancy or approval UI.
 - React dashboard, queue workers, PostgreSQL or cloud deployment.
-- External OPA service, OpenTelemetry exporter, signed SLSA attestations, immutable external audit sink or production-grade identity/role authorisation.
+- External OPA service, OpenTelemetry exporter, signed SLSA attestations, immutable external audit sink or production-grade identity-provider integration.
 
 ## Release gates still outstanding
 
 - Migrate and preserve the complete RepoSentinel source tree, tests, artifacts and documentation.
 - Run legacy tests, self-check and benchmark against the preserved engine.
 - Adapt the original OpsWorkflow through an adapter and test agent failures as failed/partial runs.
-- Complete security, regression and idempotency tests.
+- Complete security review, external connector regression tests and production idempotency/concurrency review.
 - Publish a versioned evaluation manifest and a reproducible local demo.
 
 Do not tag the full product as complete or production-ready until these gates pass.
