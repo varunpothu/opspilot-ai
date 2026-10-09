@@ -44,7 +44,30 @@
 - Avoids exposing run IDs as metric labels.
 - It is a JSON snapshot, not an OpenTelemetry exporter, Prometheus endpoint, rolling SLO or error-budget burn-rate calculator.
 
-### 6. Testable controls
+### 6. API authentication and role-based access
+- Protected routes require bearer tokens by default; /api/v1/health remains public.
+- Tokens are represented in environment configuration by SHA-256 hashes and map to a stable actor plus one of viewer, operator, approver or admin roles.
+- Read, run, request-approval and decide-approval permissions are checked separately.
+- OPSPILOT_AUTH_MODE=disabled is an explicit local-development bypass only; it is not a production mode.
+- Limitation: static token-hash configuration is not an identity provider, token issuer, rotation service or tenant isolation boundary.
+
+### 7. Human approval workflow
+- Approval requests capture requester, reason, expiry (30 minutes), run ID and the verified run-audit head hash.
+- Approval decisions require a different actor and an approver/admin role; the decision reason is recorded in a hash-linked event history.
+- Expired, already-decided and audit-invalid requests fail closed.
+- Approval records explicitly state execution_performed=false; this workflow does not execute any remediation.
+
+### 8. Idempotent run creation
+- Optional Idempotency-Key header is stored only as a SHA-256 digest and scoped by actor.
+- Repeated matching requests replay the original response; key reuse with a different request or a concurrent in-progress reservation returns HTTP 409.
+- The SQLite reservation is transactionally claimed to reduce duplicate run creation across processes sharing the same database.
+
+### 9. Resilience primitives
+- Bounded exponential backoff with jitter, a process-local retry budget, and a thread-safe closed/open/half-open circuit breaker.
+- Retrying requires the caller to explicitly declare an operation idempotent.
+- Limitation: these are tested integration primitives; no real remote connector uses them yet, and the retry budget is process-local rather than distributed.
+
+### 10. Testable controls
 - Unit tests exercise policy default-deny behavior, stable fingerprints, correlation rules and audit-chain tamper detection.
 - API report includes triage, policy and audit evidence.
 
