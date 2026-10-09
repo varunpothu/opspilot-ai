@@ -37,6 +37,7 @@ def test_analysis_detects_incident_and_persists_run(tmp_path: Path) -> None:
     result = analyze_fixture("sample", fixtures, db)
 
     assert result.status == "completed"
+    assert [event["status"] for event in result.lifecycle_events] == ["running", "succeeded"]
     assert {signal.signal_type for signal in result.signals} >= {
         "pipeline_failure", "schema_drift", "volume_anomaly", "stale_data", "stale_dashboard"
     }
@@ -157,3 +158,23 @@ def test_api_sandbox_mode_is_available(tmp_path: Path, monkeypatch) -> None:
     assert body["sandbox_result"]["status"] == "passed"
     assert body["sandbox_result"]["production_writes"] == 0
     assert body["source_hashes"]
+
+
+def test_failed_sandbox_validation_fails_the_run(tmp_path: Path, monkeypatch) -> None:
+    import opspilot_ai.service as service_module
+
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    write_fixture(fixtures, "failed_sandbox")
+    monkeypatch.setattr(service_module, "simulate_sandbox", lambda *_: {
+        "mode": "sandbox",
+        "status": "failed",
+        "checks": {"postcondition": False},
+        "original_files_unchanged": True,
+        "production_writes": 0,
+        "executed_commands": [],
+    })
+    result = analyze_fixture("failed_sandbox", fixtures, tmp_path / "failed.sqlite3", "sandbox")
+    assert result.status == "failed"
+    assert result.lifecycle_events[-1]["status"] == "failed"
+    assert "validation failed" in result.summary
