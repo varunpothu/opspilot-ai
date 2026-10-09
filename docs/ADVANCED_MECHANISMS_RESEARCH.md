@@ -10,6 +10,8 @@
 3. **Standardised observability.** OpenTelemetry conventions standardise attributes for logs, metrics and traces; GenAI conventions also describe agent, workflow, plan and tool spans. This supports future correlation of model latency, token use, tool calls, retries and incident outcomes. Source: [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/), [GenAI agent span conventions](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md).
 4. **Verifiable provenance.** SLSA v1.2 defines provenance and verification approaches for understanding where, when and how artifacts were produced. Fixture SHA-256 hashes are useful input integrity evidence but are not signed build attestations. Source: [SLSA v1.2](https://slsa.dev/spec/v1.2/), [SLSA provenance](https://slsa.dev/spec/v1.2/provenance).
 5. **AI risk management.** NIST AI RMF and its Generative AI Profile offer a lifecycle-oriented framework for governing, mapping, measuring and managing AI risks. Source: [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework), [NIST AI RMF Generative AI Profile](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf).
+6. **API function-level authorization.** OWASP recommends default-deny authorization and explicit permission checks on every function. Source: [OWASP API Security: Broken Function Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/), [FastAPI security utilities](https://fastapi.tiangolo.com/reference/security/).
+7. **Resilient remote calls.** Microsoft reliability guidance recommends bounded retries, exponential backoff, retry budgets, idempotency for repeatable operations and circuit breakers to prevent cascading failures. Sources: [Transient fault handling](https://learn.microsoft.com/en-us/azure/architecture/best-practices/transient-faults), [Circuit breaker pattern](https://learn.microsoft.com/en-gb/azure/architecture/patterns/circuit-breaker), [Retry pattern](https://learn.microsoft.com/th-th/azure/architecture/patterns/retry).
 
 ## Implemented in this branch
 
@@ -44,7 +46,30 @@
 - Avoids exposing run IDs as metric labels.
 - It is a JSON snapshot, not an OpenTelemetry exporter, Prometheus endpoint, rolling SLO or error-budget burn-rate calculator.
 
-### 6. Testable controls
+### 6. API authentication and role-based access
+- Protected routes require bearer tokens by default; /api/v1/health remains public.
+- Tokens are represented in environment configuration by SHA-256 hashes and map to a stable actor plus one of viewer, operator, approver or admin roles.
+- Read, run, request-approval and decide-approval permissions are checked separately.
+- OPSPILOT_AUTH_MODE=disabled is an explicit local-development bypass only; it is not a production mode.
+- Limitation: static token-hash configuration is not an identity provider, token issuer, rotation service or tenant isolation boundary.
+
+### 7. Human approval workflow
+- Approval requests capture requester, reason, expiry (30 minutes), run ID and the verified run-audit head hash.
+- Approval decisions require a different actor and an approver/admin role; the decision reason is recorded in a hash-linked event history.
+- Expired, already-decided and audit-invalid requests fail closed.
+- Approval records explicitly state execution_performed=false; this workflow does not execute any remediation.
+
+### 8. Idempotent run creation
+- Optional Idempotency-Key header is stored only as a SHA-256 digest and scoped by actor.
+- Repeated matching requests replay the original response; key reuse with a different request or a concurrent in-progress reservation returns HTTP 409.
+- The SQLite reservation is transactionally claimed to reduce duplicate run creation across processes sharing the same database.
+
+### 9. Resilience primitives
+- Bounded exponential backoff with jitter, a process-local retry budget, and a thread-safe closed/open/half-open circuit breaker.
+- Retrying requires the caller to explicitly declare an operation idempotent.
+- Limitation: these are tested integration primitives; no real remote connector uses them yet, and the retry budget is process-local rather than distributed.
+
+### 10. Testable controls
 - Unit tests exercise policy default-deny behavior, stable fingerprints, correlation rules and audit-chain tamper detection.
 - API report includes triage, policy and audit evidence.
 
