@@ -35,7 +35,8 @@ The command prints a JSON result and optionally writes the same result to the ou
 $env:OPSPILOT_FIXTURE_ROOT = "examples/ops_cases"
 $env:OPSPILOT_DB_PATH = ".opspilot/opspilot.sqlite3"
 $token = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
-$hash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($token))).ToLowerInvariant()
+$sha = [System.Security.Cryptography.SHA256]::Create()
+$hash = [BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($token))).Replace("-", "").ToLowerInvariant()
 $tokenMap = @{}; $tokenMap[$hash] = @{ role = "admin"; actor = "local-admin" }
 $env:OPSPILOT_API_TOKEN_HASHES = ($tokenMap | ConvertTo-Json -Compress)
 $env:OPSPILOT_AUTH_MODE = "required"
