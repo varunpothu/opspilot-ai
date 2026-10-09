@@ -14,7 +14,14 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Read-only fixture connector with target/path validation, required-file allowlist and per-file size limit.
 - Disposable sandbox simulation with allowlisted JSON changes, post-repair checks, zero production writes and an assertion that original fixture bytes remain unchanged.
 - All ten inherited operations fixture scenarios: pipeline failure, schema drift, null spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and dashboard-stale-only.
-- Reproducible fixture benchmark CLI recording fixture SHA-256 hashes, code version and run summaries.\n- CI across Python 3.11 and 3.12, including benchmark artifact generation and upload.
+- Reproducible fixture benchmark CLI recording fixture SHA-256 hashes, code version and run summaries.
+- Versioned fail-closed policy evaluator with severity-based risk score, review flags and blocked high-impact actions.
+- Deterministic P1–P4 triage, incident fingerprints and rule-based signal correlation.
+- Per-run hash-linked audit chain with verification endpoint and tamper-detection tests.
+- Optional baseline-driven data contracts for required/allowed columns, row-count bounds and null-rate ceilings.
+- Bounded recent-run JSON metrics summary endpoint; explicitly not an OpenTelemetry exporter or rolling SLO calculator.
+- Advanced-mechanisms research roadmap covering OWASP, OPA, OpenTelemetry, SLSA and NIST AI RMF.
+- Scheduled CodeQL security analysis workflow (workflow committed; scan result depends on GitHub Actions execution).\n- CI across Python 3.11 and 3.12, including benchmark artifact generation and upload.
 
 ## Not yet migrated from RepoSentinel.zip
 
@@ -29,6 +36,7 @@ The original benchmark results have not been rerun against this MVP and must not
 - LLM-based reasoning in the new MVP package.
 - Production repair, shell execution, public deployment, authentication, multi-tenancy or approval UI.
 - React dashboard, queue workers, PostgreSQL or cloud deployment.
+- External OPA service, OpenTelemetry exporter, signed SLSA attestations, immutable external audit sink or production-grade identity/role authorisation.
 
 ## Release gates still outstanding
 

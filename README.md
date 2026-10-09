@@ -8,14 +8,24 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 
 ## Implemented in the current repository
 
-- Python package and `opspilot` CLI.
-- Fixture-backed checks for pipeline status, schema drift, row-count anomalies, source freshness and dashboard staleness.
+- Python package and CLI.
+- Fixture-backed checks for pipeline status, schema drift, row-count anomalies, source freshness, dashboard staleness, null-rate spikes, metric mismatch and pipeline duration SLO breaches.
 - Structured findings with evidence references and stable identifiers.
 - Rule-based root-cause hypotheses explicitly labelled as hypotheses.
-- Review-only remediation plans. **No remediation actions are executed.**
-- SQLite persistence for incident runs.
-- FastAPI health, create-run, list-runs, detail and report endpoints.
-- All ten inherited data operations fixture scenarios covering pipeline failure, schema drift, null-rate spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and stale dashboard.\n- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.\n- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.\n- CLI/API support for read-only, dry-run and sandbox modes.\n- Reproducible fixture benchmark CLI that records fixture hashes and keeps historical results separate.\n- CI workflow, installation guide and security notes.
+- Review-only remediation plans. No remediation actions are executed.
+- SQLite persistence for incident runs and FastAPI health, create-run, list, detail and report endpoints.
+- Ten inherited data operations fixture scenarios.
+- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.
+- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.
+- CLI/API support for read-only, dry-run and sandbox modes.
+- Reproducible fixture benchmark CLI and CI across Python 3.11 and 3.12.
+- Fail-closed, versioned policy evaluation with risk scoring, human-review flags and blocked high-impact actions.
+- Deterministic P1-P4 incident triage, stable fingerprints, correlation patterns and recommended investigation steps.
+- Hash-linked per-run audit evidence for lifecycle events, source hashes, policy decisions and triage, with an audit verification API.
+- Optional data-contract checks for required/allowed columns, row-count bounds and per-column null-rate limits.
+- Bounded recent-run metrics summary via GET /api/v1/metrics, including signal counts, duration summaries, review rate and sandbox failure rate.
+- Scheduled CodeQL security-analysis workflow.
+- Research-backed roadmap for further advanced mechanisms.
 
 ## Not implemented yet
 
@@ -23,7 +33,8 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Real GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors.
 - LLM-based reasoning or agent orchestration in this new MVP package.
 - Executable sandbox repair, production actions, human approval UI or rollback.
-- Authentication, multi-tenant isolation, production deployment or a React dashboard.
+- Authentication, role-based authorisation, multi-tenant isolation, production deployment or a React dashboard.
+- External OPA service, OpenTelemetry exporter, signed SLSA attestations or external immutable audit sink.
 
 ## Quick start
 
@@ -37,7 +48,13 @@ python -m pip install -e ".[dev]"
 pytest -q
 ```
 
-Run a reproducible fixture benchmark with `opspilot-benchmark --fixtures examples/ops_cases --output artifacts/opspilot_fixture_benchmark.json`.\n\nRun a sample analysis:
+Run a reproducible fixture benchmark:
+
+```powershell
+opspilot-benchmark --fixtures examples/ops_cases --output artifacts/opspilot_fixture_benchmark.json
+```
+
+Run a sample analysis:
 
 ```powershell
 opspilot --target 01_pipeline_failure_stale_dashboard --fixtures examples/ops_cases --db .opspilot/opspilot.sqlite3 --remediation-mode sandbox --output artifacts/demo-result.json
@@ -51,14 +68,17 @@ $env:OPSPILOT_DB_PATH = ".opspilot/opspilot.sqlite3"
 uvicorn opspilot_ai.api:app --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/docs` for the local API docs. Full instructions are in [INSTALL.md](INSTALL.md).
+Open http://127.0.0.1:8000/docs for the local API docs. Full instructions are in [INSTALL.md](INSTALL.md).
 
 ## Documentation
 
 - [MVP implementation specification](docs/MVP_IMPLEMENTATION_SPEC.md)
-- [Current implementation status](docs/STATUS.md)\n- [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
+- [Current implementation status](docs/STATUS.md)
+- [Advanced mechanisms research and roadmap](docs/ADVANCED_MECHANISMS_RESEARCH.md)
+- [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
 - [MVP architecture and trust boundaries](docs/architecture/MVP_ARCHITECTURE.md)
-- [Security policy](SECURITY.md)\n- [Threat model and current security gaps](docs/security/threat-model.md)
+- [Security policy](SECURITY.md)
+- [Threat model and current security gaps](docs/security/threat-model.md)
 
 ## Safety
 
@@ -68,6 +88,4 @@ The current service reads fixture files and stores run records locally. Sandbox 
 
 Historical benchmark results from the inherited RepoSentinel archive have not been migrated or rerun against OpsPilot AI. Synthetic fixture scores describe only the dataset and evaluator that produced them; do not present them as general production accuracy.
 
-## Status labels
-
-Documentation should distinguish **Implemented**, **Fixture/demo**, **Planned**, and **Not supported**. Do not claim a real connector, production deployment or autonomous recovery until it is implemented and tested.
+Do not claim a real connector, production deployment or autonomous recovery until those capabilities are implemented and tested.

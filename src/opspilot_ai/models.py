@@ -61,3 +61,6 @@ class IncidentResult(BaseModel):
     source_hashes: dict[str, str] = Field(default_factory=dict)
     sandbox_result: dict[str, Any] | None = None
     lifecycle_events: list[dict[str, Any]] = Field(default_factory=list)
+    triage: dict[str, Any] = Field(default_factory=dict)
+    policy_decision: dict[str, Any] = Field(default_factory=dict)
+    audit_chain: list[dict[str, Any]] = Field(default_factory=list)

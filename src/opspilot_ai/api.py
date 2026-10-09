@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 
 from . import __version__
 from .service import IncidentInputError, analyze_fixture, get_run, list_runs
+from .audit import verify_audit_chain
+from .observability import summarize_runs
 
 FIXTURE_ROOT = Path(os.getenv("OPSPILOT_FIXTURE_ROOT", "examples/ops_cases")).resolve()
 DB_PATH = Path(os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.sqlite3")).resolve()
@@ -66,7 +68,25 @@ def run_report(run_id: str):
         "source_hashes": result.source_hashes,
         "sandbox_result": result.sandbox_result,
         "lifecycle_events": result.lifecycle_events,
+        "triage": result.triage,
+        "policy_decision": result.policy_decision,
+        "audit_chain": result.audit_chain,
         "signals": [signal.model_dump() for signal in result.signals],
         "hypotheses": [hypothesis.model_dump() for hypothesis in result.hypotheses],
         "remediation_plans": [plan.model_dump() for plan in result.remediation_plans],
     }
+
+
+@app.get("/api/v1/runs/{run_id}/audit/verify")
+def verify_run_audit(run_id: str):
+    result = get_run(run_id, DB_PATH)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return verify_audit_chain(result.audit_chain)
+
+
+@app.get("/api/v1/metrics")
+def metrics():
+    recent = list_runs(DB_PATH, limit=100)
+    results = [get_run(item["run_id"], DB_PATH) for item in recent]
+    return summarize_runs([result for result in results if result is not None])

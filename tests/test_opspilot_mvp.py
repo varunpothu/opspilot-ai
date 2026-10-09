@@ -178,3 +178,45 @@ def test_failed_sandbox_validation_fails_the_run(tmp_path: Path, monkeypatch) ->
     assert result.status == "failed"
     assert result.lifecycle_events[-1]["status"] == "failed"
     assert "validation failed" in result.summary
+
+
+def test_api_audit_verification_and_policy_report(tmp_path: Path, monkeypatch) -> None:
+    import opspilot_ai.api as api_module
+
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    write_fixture(fixtures, "audit_api")
+    monkeypatch.setattr(api_module, "FIXTURE_ROOT", fixtures)
+    monkeypatch.setattr(api_module, "DB_PATH", tmp_path / "audit.sqlite3")
+    client = TestClient(api_module.app)
+    created = client.post("/api/v1/runs", json={"target": "audit_api", "remediation_mode": "read_only"})
+    assert created.status_code == 201
+    body = created.json()
+    assert body["policy_decision"]["execution_permitted"] is False
+    assert body["triage"]["incident_fingerprint"]
+    assert body["audit_chain"]
+    run_id = body["run_id"]
+    verified = client.get(f"/api/v1/runs/{run_id}/audit/verify")
+    assert verified.status_code == 200
+    assert verified.json()["valid"] is True
+    report = client.get(f"/api/v1/runs/{run_id}/report").json()
+    assert report["policy_decision"]["production_writes_permitted"] is False
+
+
+def test_api_metrics_endpoint_returns_bounded_summary(tmp_path: Path, monkeypatch) -> None:
+    import opspilot_ai.api as api_module
+
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    write_fixture(fixtures, "metrics_api")
+    monkeypatch.setattr(api_module, "FIXTURE_ROOT", fixtures)
+    monkeypatch.setattr(api_module, "DB_PATH", tmp_path / "metrics.sqlite3")
+    client = TestClient(api_module.app)
+    created = client.post("/api/v1/runs", json={"target": "metrics_api", "remediation_mode": "read_only"})
+    assert created.status_code == 201
+    metrics = client.get("/api/v1/metrics")
+    assert metrics.status_code == 200
+    body = metrics.json()
+    assert body["sample_size"] == 1
+    assert body["run_status_counts"] == {"completed": 1}
+    assert "limitations" in body
