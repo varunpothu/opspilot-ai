@@ -22,7 +22,7 @@ OpsPilot AI is the public product name. The legacy `reposentinel` Python import 
 - Deterministic checks for pipeline state, schema, row volume, source freshness, dashboard freshness and metric consistency, null-rate spikes and pipeline SLO breaches.
 - A lifecycle state machine.
 - A disposable sandbox simulator that only edits copied JSON fixtures and checks its own postconditions.
-- Five migrated operations fixture cases: `01_pipeline_failure_stale_dashboard`, `02_schema_drift`, `03_null_spike`, `06_volume_drop`, and `08_healthy`.
+- All ten legacy operations fixture cases have been migrated: pipeline failure, schema drift, null spike, dashboard mismatch, freshness SLA, volume drop, multiple incident, healthy, slow pipeline and dashboard-stale-only.
 - API, lifecycle, connector and sandbox tests, plus CI on Python 3.11 and 3.12.
 
 ## Not yet migrated
@@ -31,7 +31,7 @@ The following remain outstanding and are not implied by the current MVP:
 
 1. The full `src/reposentinel/` package and its 16 operations agents.
 2. The repository-analysis agent suite and original CLI entry points.
-3. The remaining five operations fixture cases.
+3. The original operations benchmark runner and saved outputs must still be integrated and reproduced. The fixture inputs themselves are now all present.
 4. All 24 repository-analysis examples, original tests, self-check and benchmark runner.
 5. Historical `artifacts/case_*`, SARIF, report, evaluation, email and operations console artifacts.
 6. The original agent prompt/contract documents and full architecture/security documentation.
