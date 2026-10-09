@@ -68,6 +68,12 @@ def create_approval(db_path: str | Path, run_id: str, requester: str, reason: st
         raise ApprovalError("Approval reason must contain 8 to 1000 characters")
     if run_result is None:
         raise ApprovalError("Run not found")
+    if getattr(run_result, "status", None) != "completed":
+        raise ApprovalError("Only completed analysis runs can be submitted for review")
+    if not getattr(run_result, "remediation_plans", []):
+        raise ApprovalError("Run has no remediation plan to review")
+    if not getattr(run_result, "policy_decision", {}).get("human_approval_required", False):
+        raise ApprovalError("Policy does not require human approval for this run")
     verification = verify_audit_chain(run_result.audit_chain)
     if not verification["valid"]:
         raise ApprovalError("Run audit chain failed verification; approval request denied")
