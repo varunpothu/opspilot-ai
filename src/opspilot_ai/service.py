@@ -16,6 +16,7 @@ from .connectors import ConnectorError, FixtureConnector
 from .audit import build_audit_chain
 from .policy import evaluate_run_policy
 from .triage import assess_incident
+from .quality import evaluate_data_contract
 from .lifecycle import RunLifecycle, RunStatus
 from .models import Evidence, Hypothesis, IncidentResult, RemediationPlan, Signal
 from .sandbox import simulate_sandbox
@@ -199,6 +200,13 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
                         f"Observed null rate is materially above the baseline for {column}.",
                     ))
 
+    for violation in evaluate_data_contract(source, baseline):
+        signals.append(_signal(
+            "data_contract_violation", "high", "Data contract constraint failed",
+            str(violation["field"]), violation.get("observed"), violation.get("expected"),
+            "baseline.json", str(violation["detail"]),
+        ))
+
     duration = pipeline.get("duration_minutes")
     duration_limit = baseline.get("pipeline_duration_slo_minutes")
     if isinstance(duration, (int, float)) and isinstance(duration_limit, (int, float)) and duration > duration_limit:
@@ -241,6 +249,13 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
             title="Upstream data quality regression",
             explanation="One or more source null rates materially exceed their configured baseline.",
             confidence=0.75, supporting_signal_ids=matching,
+        ))
+    if "data_contract_violation" in by_type:
+        matching = [signal.id for signal in signals if signal.signal_type == "data_contract_violation"]
+        hypotheses.append(Hypothesis(
+            title="Configured data contract violation",
+            explanation="One or more explicit source contract constraints failed. Validate the contract version and source snapshot before publication.",
+            confidence=0.9, supporting_signal_ids=matching,
         ))
     if "slow_pipeline" in by_type:
         hypotheses.append(Hypothesis(
