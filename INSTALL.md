@@ -59,3 +59,14 @@ The API accepts only the fixture connector and `read_only`, `dry_run` or `sandbo
 ## Tests and current limits
 
 Run `pytest -q`. The current MVP tests cover fixture detection, persistence, input traversal rejection and the API health endpoint. The inherited RepoSentinel engine and historical benchmarks have not yet been migrated into this repository; their results must not be described as OpsPilot AI benchmark results.
+
+
+## Run the reproducible fixture benchmark
+
+Run all configured cases and write a separate report:
+
+```powershell
+opspilot-benchmark --fixtures examples/ops_cases --output artifacts/opspilot_fixture_benchmark.json
+```
+
+The benchmark records the OpsPilot version, generation timestamp, each fixture file's SHA-256 hash, detected signal types and run durations. It does not overwrite inherited RepoSentinel artifacts and does not claim production accuracy. The generated `artifacts/` directory is ignored by Git by default.
