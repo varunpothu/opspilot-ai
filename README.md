@@ -15,7 +15,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Review-only remediation plans. **No remediation actions are executed.**
 - SQLite persistence for incident runs.
 - FastAPI health, create-run, list-runs, detail and report endpoints.
-- Example warehouse fixture, initial tests, CI workflow, installation guide and security notes.
+- Five inherited-style data operations fixtures covering pipeline failure, schema drift, null-rate spike, volume drop and healthy operation.\n- Explicit run lifecycle state machine and fixture connector with SHA-256 provenance.\n- Disposable sandbox simulation with allowlisted JSON changes and post-repair validation.\n- CLI/API support for read-only, dry-run and sandbox modes.\n- CI workflow, installation guide and security notes.
 
 ## Not implemented yet
 
@@ -40,7 +40,7 @@ pytest -q
 Run a sample analysis:
 
 ```powershell
-opspilot --target demo_warehouse --fixtures examples/ops_cases --db .opspilot/opspilot.sqlite3 --output artifacts/demo-result.json
+opspilot --target 01_pipeline_failure_stale_dashboard --fixtures examples/ops_cases --db .opspilot/opspilot.sqlite3 --remediation-mode sandbox --output artifacts/demo-result.json
 ```
 
 Start the local API:
@@ -56,13 +56,13 @@ Open `http://127.0.0.1:8000/docs` for the local API docs. Full instructions are 
 ## Documentation
 
 - [MVP implementation specification](docs/MVP_IMPLEMENTATION_SPEC.md)
-- [Current implementation status](docs/STATUS.md)
+- [Current implementation status](docs/STATUS.md)\n- [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
 - [MVP architecture and trust boundaries](docs/architecture/MVP_ARCHITECTURE.md)
 - [Security policy](SECURITY.md)
 
 ## Safety
 
-The current service reads fixture files and stores run records locally. It does not execute remediation plans or modify source fixtures. Keep the API on localhost; authentication is not implemented.
+The current service reads fixture files and stores run records locally. Sandbox mode applies only allowlisted changes to a disposable copy and validates the result. It never executes shell commands or modifies source fixtures. Keep the API on localhost; authentication is not implemented.
 
 ## Evaluation
 
