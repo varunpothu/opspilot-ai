@@ -13,7 +13,7 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Explicit run lifecycle state machine with fail-closed legal transitions.
 - Read-only fixture connector with target/path validation, required-file allowlist and per-file size limit.
 - Disposable sandbox simulation with allowlisted JSON changes, post-repair checks, zero production writes and an assertion that original fixture bytes remain unchanged.
-- Five inherited-style fixture scenarios: pipeline failure, schema drift, null spike, volume drop and healthy operation.
+- All ten inherited operations fixture scenarios: pipeline failure, schema drift, null spike, dashboard mismatch, freshness SLA, volume drop, multiple incidents, healthy operation, slow pipeline and dashboard-stale-only.
 - CI across Python 3.11 and 3.12.
 
 ## Not yet migrated from RepoSentinel.zip
