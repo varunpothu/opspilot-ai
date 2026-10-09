@@ -56,7 +56,8 @@ Open `http://127.0.0.1:8000/docs` for the local API docs. Full instructions are 
 ## Documentation
 
 - [MVP implementation specification](docs/MVP_IMPLEMENTATION_SPEC.md)
-- [Current implementation status](docs/STATUS.md)\n- [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
+- [Current implementation status](docs/STATUS.md)
+- [Advanced mechanisms research and roadmap](docs/ADVANCED_MECHANISMS_RESEARCH.md)\n- [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
 - [MVP architecture and trust boundaries](docs/architecture/MVP_ARCHITECTURE.md)
 - [Security policy](SECURITY.md)\n- [Threat model and current security gaps](docs/security/threat-model.md)
 
