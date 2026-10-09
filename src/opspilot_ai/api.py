@@ -56,7 +56,7 @@ def create_run(
     reservation = None
     if idempotency_key is not None:
         try:
-            reservation = reserve_idempotency(DB_PATH, idempotency_key, request.model_dump(mode="json"))
+            reservation = reserve_idempotency(DB_PATH, f"{_principal.actor}:{idempotency_key}", request.model_dump(mode="json"))
             if reservation["state"] == "replay":
                 return reservation["response"]
         except IdempotencyConflict as exc:
