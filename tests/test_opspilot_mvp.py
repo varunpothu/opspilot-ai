@@ -118,3 +118,42 @@ def test_api_rejects_unsupported_connector() -> None:
         "remediation_mode": "dry_run",
     })
     assert response.status_code == 422
+
+
+
+def test_sandbox_mode_returns_validation_and_provenance(tmp_path: Path) -> None:
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    target = write_fixture(fixtures, "sandbox_case")
+    before = {p.name: p.read_bytes() for p in target.iterdir()}
+    result = analyze_fixture("sandbox_case", fixtures, tmp_path / "runs.sqlite3", "sandbox")
+
+    assert result.sandbox_result is not None
+    assert result.sandbox_result["status"] == "passed"
+    assert result.sandbox_result["original_files_unchanged"] is True
+    assert set(result.source_hashes) == {
+        "source.json", "pipeline.json", "dashboard.json", "baseline.json"
+    }
+    assert before == {p.name: p.read_bytes() for p in target.iterdir()}
+
+
+def test_api_sandbox_mode_is_available(tmp_path: Path, monkeypatch) -> None:
+    import opspilot_ai.api as api_module
+
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    write_fixture(fixtures, "sandbox_api")
+    monkeypatch.setattr(api_module, "FIXTURE_ROOT", fixtures)
+    monkeypatch.setattr(api_module, "DB_PATH", tmp_path / "runs.sqlite3")
+    client = TestClient(api_module.app)
+    response = client.post("/api/v1/runs", json={
+        "target": "sandbox_api",
+        "connector": "fixture",
+        "mode": "analyze",
+        "remediation_mode": "sandbox",
+    })
+    assert response.status_code == 201
+    body = response.json()
+    assert body["sandbox_result"]["status"] == "passed"
+    assert body["sandbox_result"]["production_writes"] == 0
+    assert body["source_hashes"]
