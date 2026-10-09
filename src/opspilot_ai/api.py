@@ -25,7 +25,7 @@ class RunRequest(BaseModel):
     target: str = Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
     connector: Literal["fixture"] = "fixture"
     mode: Literal["analyze"] = "analyze"
-    remediation_mode: Literal["read_only", "dry_run"] = "dry_run"
+    remediation_mode: Literal["read_only", "dry_run", "sandbox"] = "dry_run"
 
 
 @app.get("/api/v1/health")
@@ -36,7 +36,7 @@ def health() -> dict[str, str]:
 @app.post("/api/v1/runs", status_code=201)
 def create_run(request: RunRequest):
     try:
-        return analyze_fixture(request.target, FIXTURE_ROOT, DB_PATH)
+        return analyze_fixture(request.target, FIXTURE_ROOT, DB_PATH, request.remediation_mode)
     except IncidentInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
