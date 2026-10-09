@@ -1,25 +1,41 @@
 # OpsPilot AI status
 
-This file distinguishes the code that exists in this repository from planned work.
+Status is intentionally explicit. This repository is an early MVP, not a production incident operator.
 
-## Implemented in this repository
+## Implemented and committed
 
 - FastAPI health, create-run, list-runs, run-detail and report endpoints.
-- Fixture-backed checks for pipeline status, schema drift, volume anomalies, source freshness and dashboard staleness.
-- Evidence-linked deterministic signals and explicitly labelled root-cause hypotheses.
-- SQLite persistence for incident run records.
-- CLI entry point for local analysis.
-- Sample warehouse incident fixture and basic tests.
-- Read-only source handling; remediation plans are proposed only and are not executed.
+- CLI for fixture-backed incident analysis and JSON export.
+- Deterministic checks for pipeline status, schema drift, volume anomalies, source freshness, dashboard staleness, dashboard/source metric mismatch, null-rate spikes and pipeline duration SLO breaches.
+- Evidence-linked signals with stable identifiers and SHA-256 hashes for the four input fixture files.
+- Rule-based candidate hypotheses with supporting signal IDs.
+- SQLite run history.
+- Explicit run lifecycle state machine with fail-closed legal transitions.
+- Read-only fixture connector with target/path validation, required-file allowlist and per-file size limit.
+- Disposable sandbox simulation with allowlisted JSON changes, post-repair checks, zero production writes and an assertion that original fixture bytes remain unchanged.
+- Five inherited-style fixture scenarios: pipeline failure, schema drift, null spike, volume drop and healthy operation.
+- CI across Python 3.11 and 3.12.
 
-## Still planned
+## Not yet migrated from RepoSentinel.zip
 
-- Migration of the complete inherited RepoSentinel engine and its original tests/artifacts.
-- Integration adapters for GitHub, dbt, SQL databases, cloud services and model-serving systems.
-- Authentication, user identities and approval UI.
-- React dashboard, distributed job queue, production deployment and multi-tenancy.
-- Executable sandbox remediation. Current MVP only emits a proposed dry-run plan.
+The complete original source tree, all 16 operations agents, repository-analysis agents, legacy CLI entry points, original test suite, full set of 10 operations fixtures, 24-case repository-analysis examples, saved benchmark outputs, SARIF examples, reports and original documentation are not yet present as native files in this repository. The current five fixtures are a partial migration of the operations scenarios, not a replacement for the original archive.
 
-## Important evaluation note
+The original benchmark results have not been rerun against this MVP and must not be presented as OpsPilot AI performance.
 
-The inherited RepoSentinel ZIP contains separate synthetic benchmarks. They have not yet been migrated into this repository or rerun against this MVP. Do not claim their scores as OpsPilot AI results. Preserve the original artifacts and benchmark methodology during the migration.
+## Not implemented
+
+- Execution of the original 16-agent OpsWorkflow through the new run service.
+- Real GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors.
+- LLM-based reasoning in the new MVP package.
+- Production repair, shell execution, public deployment, authentication, multi-tenancy or approval UI.
+- React dashboard, queue workers, PostgreSQL or cloud deployment.
+
+## Release gates still outstanding
+
+- Migrate and preserve the complete RepoSentinel source tree, tests, artifacts and documentation.
+- Run legacy tests, self-check and benchmark against the preserved engine.
+- Adapt the original OpsWorkflow through an adapter and test agent failures as failed/partial runs.
+- Complete security, regression and idempotency tests.
+- Publish a versioned evaluation manifest and a reproducible local demo.
+
+Do not tag the full product as complete or production-ready until these gates pass.
