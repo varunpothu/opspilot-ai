@@ -12,7 +12,9 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from .connectors import ConnectorError, FixtureConnector
 from .models import Evidence, Hypothesis, IncidentResult, RemediationPlan, Signal
+from .sandbox import simulate_sandbox
 
 _TARGET_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$")
 _REQUIRED_FILES = ("source.json", "pipeline.json", "dashboard.json", "baseline.json")
@@ -74,7 +76,7 @@ def _ensure_database(db_path: Path) -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at)")
 
 
-def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path) -> IncidentResult:
+def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, remediation_mode: str = "dry_run") -> IncidentResult:
     """Analyze one allowlisted fixture directory and persist a JSON run record.
 
     This function is read-only with respect to fixture files. It does not execute
@@ -84,22 +86,13 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path) 
     if not _TARGET_RE.fullmatch(target) or target in {".", ".."}:
         raise IncidentInputError("Target must be a simple directory name.")
 
+    if remediation_mode not in {"read_only", "dry_run", "sandbox"}:
+        raise IncidentInputError("Unsupported remediation mode.")
     root = Path(fixture_root).resolve()
-    target_path = (root / target).resolve()
-    if target_path == root or root not in target_path.parents:
-        raise IncidentInputError("Target is outside the configured fixture root.")
-    if not target_path.is_dir():
-        raise IncidentInputError("Target fixture directory does not exist.")
-
-    # Reject symlink escapes by resolving each expected file and checking its root.
-    documents: dict[str, dict[str, Any]] = {}
-    for filename in _REQUIRED_FILES:
-        candidate = (target_path / filename).resolve()
-        if target_path not in candidate.parents:
-            raise IncidentInputError(f"Fixture path escapes target directory: {filename}")
-        if not candidate.is_file():
-            raise IncidentInputError(f"Missing required fixture: {filename}")
-        documents[filename] = _read_json(candidate)
+    try:
+        documents, source_hashes = FixtureConnector(root).collect(target)
+    except ConnectorError as exc:
+        raise IncidentInputError(str(exc)) from exc
 
     source = documents["source.json"]
     pipeline = documents["pipeline.json"]
@@ -210,6 +203,8 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path) 
         remediation_plans=plans,
         summary=(f"Detected {len(signals)} reliability signal(s)." if signals
                  else "No configured reliability checks were triggered."),
+        source_hashes=source_hashes,
+        sandbox_result=(simulate_sandbox(target, root) if remediation_mode == "sandbox" else None),
     )
     database = Path(db_path).resolve()
     _ensure_database(database)
