@@ -58,8 +58,11 @@ class GitHubReadOnlyConnector:
             },
         )
 
-    def get_latest_commit(self, owner: str, repo: str, branch: str = "HEAD") -> GitHubReadResult:
+    def get_latest_commit(self, owner: str, repo: str, branch: str | None = None) -> GitHubReadResult:
         base = self._repository_path(owner, repo)
+        if branch is None:
+            repository = self.get_repository(owner, repo)
+            branch = repository.data.get("default_branch")
         if not isinstance(branch, str) or not branch.strip() or len(branch) > 255:
             raise ValueError("branch/ref must contain 1 to 255 characters")
         path = f"{base}/commits/{quote(branch, safe='')}"
