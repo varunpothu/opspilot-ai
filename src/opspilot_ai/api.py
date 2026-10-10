@@ -108,7 +108,7 @@ def run_report(run_id: str, _principal: Principal = Depends(require_permission("
         "triage": result.triage,
         "policy_decision": result.policy_decision,
         "agent_workflow": result.agent_workflow,
-        "audit_chain: result.audit_chain,
+        "audit_chain": result.audit_chain,
         "signals": [signal.model_dump() for signal in result.signals],
         "hypotheses": [hypothesis.model_dump() for hypothesis in result.hypotheses],
         "remediation_plans": [plan.model_dump() for plan in result.remediation_plans],
