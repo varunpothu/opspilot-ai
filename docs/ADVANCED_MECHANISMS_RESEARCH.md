@@ -164,3 +164,13 @@ Research: [OpenTelemetry Python instrumentation](https://opentelemetry.io/docs/l
 - For scheduled production monitoring, prefer webhooks over frequent polling where possible. When polling is required, use stable URLs, conditional requests, explicit rate-limit handling, and bounded serial requests.
 
 Research: [GitHub REST API best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api).
+
+
+### Signed event-driven GitHub intake
+
+- The webhook endpoint verifies `X-Hub-Signature-256` against the exact request bytes using HMAC-SHA256 and constant-time comparison, validates event names, enforces a 1 MB payload ceiling, and deduplicates `X-GitHub-Delivery` in SQLite.
+- Only a payload digest and allowlisted bounded metadata are persisted. Same-delivery/same-payload retries are idempotent; delivery-ID reuse with a different payload is rejected.
+- The endpoint is intentionally an inbox only: it does not trigger agents or remediation. The next production step is a durable worker/queue with retry limits, dead-letter handling, idempotent consumers, delivery-failure metrics and operational replay controls.
+- A shared webhook secret is a credential: provision it through a secret manager, rotate it with a documented overlap procedure, terminate TLS at the trusted perimeter, rate-limit the endpoint, and keep request bodies out of logs. Delivery deduplication retention is currently 90 days.
+
+Research: [GitHub REST API integration best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api), [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
