@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from itertools import islice
 from typing import Any, Callable, Iterable
 
 from .sync_state import SyncStateStore, WatermarkRegression, _compare_watermarks, _validate_watermark
@@ -69,7 +70,7 @@ class IncrementalSyncRunner:
             if overlap and not isinstance(previous, str):
                 raise IncrementalSyncError("overlap windows require ISO-8601 timestamp watermarks")
         lower = _overlap_lower_bound(previous, overlap) if previous is not None else None
-        rows = list(read_changes(lower, upper))
+        rows = list(islice(read_changes(lower, upper), self.max_batch_rows + 1))
         if len(rows) > self.max_batch_rows:
             raise IncrementalSyncError(
                 f"batch exceeded {self.max_batch_rows} rows; paginate or chunk the source read"
