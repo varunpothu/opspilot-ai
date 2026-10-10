@@ -63,4 +63,5 @@ class IncidentResult(BaseModel):
     lifecycle_events: list[dict[str, Any]] = Field(default_factory=list)
     triage: dict[str, Any] = Field(default_factory=dict)
     policy_decision: dict[str, Any] = Field(default_factory=dict)
+    agent_workflow: dict[str, Any] = Field(default_factory=dict)
     audit_chain: list[dict[str, Any]] = Field(default_factory=list)
