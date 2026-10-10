@@ -57,3 +57,12 @@ These primitives are not yet wired to production connectors. A connector must de
 - Move audit events to a separately administered append-only store and add signed/verified build provenance.
 - Add OpenTelemetry exporters, secret redaction, retention policies, alerting and external connector security tests.
 - Review the deployment perimeter and use TLS when traffic leaves localhost.
+
+
+## GitHub webhook intake
+
+`POST /api/v1/webhooks/github` is intentionally exempt from bearer-token authentication because GitHub authenticates deliveries using an HMAC signature. It requires `OPSPILOT_GITHUB_WEBHOOK_SECRET`, `X-Hub-Signature-256`, `X-GitHub-Delivery`, and `X-GitHub-Event`. Signatures are verified over the exact raw request bytes with HMAC-SHA256 and constant-time comparison. The endpoint accepts JSON bodies up to 1 MB and a fixed event allowlist.
+
+Delivery IDs are deduplicated in SQLite for a 90-day retention window. Repeated delivery IDs with the same event and body hash return a duplicate result; reuse with a different payload returns HTTP 409. Only bounded operational metadata and a payload SHA-256 are stored; raw webhook bodies and secrets are not persisted. The endpoint returns `actions_triggered=false` and only places the delivery in a pending-review inbox. It does not run analyses, launch agents, or execute remediation.
+
+Before network exposure, configure the secret from a secret manager, use TLS, add request-rate/resource limits, monitor delivery failures, and build a separate queue worker with retries/dead-letter handling and idempotent consumers. Delivery IDs older than the retention window may be accepted again; tune retention to your replay threat model.
