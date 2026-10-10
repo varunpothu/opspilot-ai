@@ -26,7 +26,8 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Research roadmap, security/threat-model documentation and scheduled CodeQL security analysis.
 - Conditional ETags on run-detail and report GET endpoints; weak/wildcard `If-None-Match` matching.
 - Allowlisted read-only HTTPS connector with ETag/Last-Modified revalidation, cached-body reuse after 304, timeout and response-size limits.
-- SQLite sync-state store with optimistic checkpoint revisions and monotonic numeric/ISO-8601 watermarks; checkpoint advances are explicit and intended only after sink commit.
+- SQLite sync-state store with optimistic checkpoint revisions and monotonic numeric/ISO-8601 watermarks.
+- Incremental sync runner with bounded batches, idempotent-sink requirement, timestamp overlap windows, and checkpoint advancement only after sink success; cross-system atomicity is not claimed.
 - Five-stage deterministic agent workflow (evidence validation, triage, policy gate, recommendation planner, safety evaluator) integrated into run reports; no LLM or action-execution privileges.
 - Request-ID propagation, JSON request logs with query/body/credential redaction, and opt-in OTLP tracing via the `otel` extra.
 
