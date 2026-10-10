@@ -173,7 +173,14 @@ class AgentWorkflow:
                 ))
             except Exception as exc:
                 # Error details are reduced to a code to avoid logging source payloads/secrets.
-                code = str(exc)[:80] if isinstance(exc, ValueError) else "agent_step_failed"
+                safe_codes = {
+                    "invalid_target", "signal_limit_exceeded", "signal_id_missing",
+                    "duplicate_signal_id", "invalid_evidence_shape",
+                    "policy_execution_invariant_failed", "policy_denied",
+                    "unsafe_policy_result", "unsafe_recommendation",
+                }
+                raw_code = str(exc)
+                code = raw_code if raw_code in safe_codes else "agent_step_failed"
                 events.append(AgentEvent(
                     agent=agent.name, status="failed",
                     duration_ms=max(0, int((time.perf_counter() - started) * 1000)),
