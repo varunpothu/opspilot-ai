@@ -36,29 +36,37 @@ def verify_github_signature(secret: str, body: bytes, signature: str | None) -> 
     return hmac.compare_digest(expected, signature)
 
 
+def _safe_scalar(value: Any) -> Any:
+    if isinstance(value, str):
+        return value[:500]
+    if value is None or isinstance(value, (int, bool)):
+        return value
+    return None
+
+
 def extract_safe_metadata(event_name: str, payload: dict[str, Any]) -> dict[str, Any]:
     """Keep only bounded operational identifiers; never persist the raw webhook body."""
     repository = payload.get("repository") if isinstance(payload.get("repository"), dict) else {}
     metadata: dict[str, Any] = {
-        "repository": repository.get("full_name") if isinstance(repository.get("full_name"), str) else None,
+        "repository": _safe_scalar(repository.get("full_name")),
         "repository_id": repository.get("id") if isinstance(repository.get("id"), int) else None,
     }
     if event_name == "workflow_run":
         run = payload.get("workflow_run") if isinstance(payload.get("workflow_run"), dict) else {}
         metadata["workflow_run"] = {
-            key: run.get(key)
+            key: _safe_scalar(run.get(key))
             for key in ("id", "name", "status", "conclusion", "head_branch", "head_sha", "html_url")
         }
     elif event_name == "workflow_job":
         job = payload.get("workflow_job") if isinstance(payload.get("workflow_job"), dict) else {}
         metadata["workflow_job"] = {
-            key: job.get(key)
+            key: _safe_scalar(job.get(key))
             for key in ("id", "name", "status", "conclusion", "head_sha", "html_url")
         }
     elif event_name == "check_run":
         check = payload.get("check_run") if isinstance(payload.get("check_run"), dict) else {}
         metadata["check_run"] = {
-            key: check.get(key)
+            key: _safe_scalar(check.get(key))
             for key in ("id", "name", "status", "conclusion", "head_sha", "html_url")
         }
     elif event_name == "push":
@@ -69,12 +77,12 @@ def extract_safe_metadata(event_name: str, payload: dict[str, Any]) -> dict[str,
     elif event_name == "pull_request":
         pull = payload.get("pull_request") if isinstance(payload.get("pull_request"), dict) else {}
         metadata["pull_request"] = {
-            key: pull.get(key) for key in ("number", "state", "merged", "html_url", "title")
+            key: _safe_scalar(pull.get(key)) for key in ("number", "state", "merged", "html_url", "title")
         }
     elif event_name == "issues":
         issue = payload.get("issue") if isinstance(payload.get("issue"), dict) else {}
         metadata["issue"] = {
-            key: issue.get(key) for key in ("number", "state", "html_url", "title")
+            key: _safe_scalar(issue.get(key)) for key in ("number", "state", "html_url", "title")
         }
     return metadata
 
