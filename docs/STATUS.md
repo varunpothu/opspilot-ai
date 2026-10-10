@@ -24,6 +24,11 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Actor-scoped SQLite idempotency for API run creation; matching repeats replay the original response.
 - Bounded retry/backoff, process-local retry budget and closed/open/half-open circuit-breaker primitives. No production connector uses these primitives yet.
 - Research roadmap, security/threat-model documentation and scheduled CodeQL security analysis.
+- Conditional ETags on run-detail and report GET endpoints; weak/wildcard `If-None-Match` matching.
+- Allowlisted read-only HTTPS connector with ETag/Last-Modified revalidation, cached-body reuse after 304, timeout and response-size limits.
+- SQLite sync-state store with optimistic checkpoint revisions and monotonic numeric/ISO-8601 watermarks; checkpoint advances are explicit and intended only after sink commit.
+- Five-stage deterministic agent workflow (evidence validation, triage, policy gate, recommendation planner, safety evaluator) integrated into run reports; no LLM or action-execution privileges.
+- Request-ID propagation, JSON request logs with query/body/credential redaction, and opt-in OTLP tracing via the `otel` extra.
 
 ## Not yet migrated from RepoSentinel.zip
 
@@ -34,11 +39,11 @@ The original benchmark results have not been rerun against this MVP and must not
 ## Not implemented
 
 - Execution of the original 16-agent OpsWorkflow through the new run service.
-- Real GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors.
-- LLM-based reasoning in the new MVP package.
+- Production-configured GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors. The generic conditional HTTP connector is a read-only integration primitive, not a configured source connector.
+- LLM-based reasoning in the new MVP package; the implemented agent graph is deterministic and has no tool execution.
 - Production repair, shell execution or autonomous actions.
 - External identity-provider integration, token lifecycle/rotation, multi-tenant isolation, public deployment or a React dashboard.
-- External OPA service, OpenTelemetry exporter, signed SLSA attestations or external immutable audit sink.
+- External OPA service, complete OpenTelemetry metrics/logs exporter, signed SLSA attestations or external immutable audit sink.
 - Distributed retry budgets, distributed idempotency or a persistent queue.
 
 ## Release gates still outstanding
