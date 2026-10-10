@@ -18,6 +18,7 @@ from .auth import Principal, require_any_permission, require_permission
 from .idempotency import IdempotencyConflict, complete as complete_idempotency, release as release_idempotency, reserve as reserve_idempotency
 from .observability import summarize_runs
 from .service import IncidentInputError, analyze_fixture, get_run, list_runs
+from .telemetry import RequestContextMiddleware, configure_opentelemetry
 
 FIXTURE_ROOT = Path(os.getenv("OPSPILOT_FIXTURE_ROOT", "examples/ops_cases")).resolve()
 DB_PATH = Path(os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.sqlite3")).resolve()
@@ -27,6 +28,9 @@ app = FastAPI(
     version=__version__,
     description="Local-first, fixture-backed data reliability investigation. No production writes.",
 )
+
+app.add_middleware(RequestContextMiddleware)
+configure_opentelemetry(app)
 
 
 
