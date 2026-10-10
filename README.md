@@ -34,7 +34,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Retry policy with exponential backoff/jitter, process-local retry budget, explicit idempotency requirement and thread-safe circuit breaker primitives.
 - Scheduled CodeQL security-analysis workflow.
 - Conditional ETags on run detail/report APIs and a bounded, host-allowlisted read-only HTTPS connector with ETag/Last-Modified cache revalidation.
-- Durable SQLite sync checkpoints with compare-and-swap revisions, monotonic numeric/timestamp watermarks, and explicit post-sink-commit checkpoint protocol.
+- Durable SQLite sync checkpoints with compare-and-swap revisions, monotonic numeric/timestamp watermarks, bounded incremental batches, replay-safe idempotent-sink contract and optional timestamp overlap.
 - Five-stage deterministic agent workflow for evidence validation, triage, policy gating, recommendation planning and safety evaluation; workflow evidence appears in run reports and agents cannot execute actions.
 - Request-ID propagation and JSON request logs with sensitive fields omitted; optional OTLP tracing through the `otel` dependency extra.
 - Research-backed roadmap for further advanced mechanisms.
