@@ -99,3 +99,57 @@
 - Use bounded-cardinality metric labels. Do not use run IDs, dataset IDs or user IDs as Prometheus labels.
 - Keep external actions disabled until connector permissions, approval, rollback and incident-response tests pass.
 - Do not claim OpenTelemetry export, OPA integration, signed SLSA provenance or production readiness until those integrations exist and are verified.
+
+
+## Implementation update: ETags, watermarks, agent graph and tracing
+
+### Conditional HTTP reads and ETags
+
+- `ConditionalHTTPConnector` is a bounded, read-only HTTPS GET connector. It requires an explicit hostname allowlist, rejects credentials embedded in URLs, forbids non-HTTPS URLs and cross-allowlist redirects, applies a timeout and response-size cap, and has no write method or arbitrary authorization-header option.
+- It sends `If-None-Match` and `If-Modified-Since` when validators are cached. A `304 Not Modified` reuses the previously stored representation; a `200` updates the cache. Cache keys are SHA-256 URL digests to avoid storing query-string values as keys.
+- Run-detail and run-report GET endpoints now return stable SHA-256 ETags and honour `If-None-Match`, including weak validators and wildcard matching.
+- Limitation: the generic connector is not yet wired to a configured production source, secret manager, distributed cache, rate-limit-aware scheduler or source-specific pagination adapter. The connector does not claim that a 304 is a source-data watermark.
+
+Research: [GitHub REST API best practices and conditional requests](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api), [HTTP conditional requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Conditional_requests).
+
+### Durable incremental-sync watermarks
+
+- `SyncStateStore` persists source representation cache and sync checkpoints in SQLite.
+- Checkpoint updates use an explicit expected revision (compare-and-swap) and a transaction, preventing stale concurrent workers from silently overwriting a newer checkpoint.
+- Numeric and ISO-8601 timestamp watermarks are supported; backwards movement, opaque string cursors and type changes fail closed.
+- **Commit protocol:** fetch and validate source changes; write/merge the destination batch idempotently; commit the destination; only then call `commit_checkpoint` with the revision read at the start of the run. If destination commit fails, do not advance the watermark. For a destination and checkpoint in different databases, use an idempotent sink plus replay/reconciliation because this library cannot provide a cross-system atomic transaction.
+- Watermarks based only on monotonically increasing timestamps/IDs can miss deletes and can miss late-arriving updates when the source column is not reliable. Prefer CDC/change tracking or source-native change tokens when they exist; use an overlap window plus deduplication for timestamp feeds, and explicitly test ties, late arrivals, timezone normalization, nulls, deletes, and backfills.
+- Limitation: checkpoint persistence is implemented, but no warehouse destination transaction or production ingestion scheduler is connected yet. Opaque pagination cursors are deliberately not treated as sortable watermarks.
+
+Research: [Microsoft Fabric incremental copy and CDC versus watermarks](https://learn.microsoft.com/en-us/fabric/data-factory/incremental-copy-job), [Azure Data Factory incremental copy pattern](https://learn.microsoft.com/en-us/azure/data-factory/tutorial-incremental-copy-overview).
+
+### Bounded agent workflow
+
+The incident service now runs a fixed five-stage deterministic workflow:
+
+1. Evidence validation and canonical SHA-256 digest.
+2. Incident triage and correlation.
+3. Policy gate using the existing fail-closed evaluator.
+4. Recommendation planning based on observed signals.
+5. Safety evaluation to assert that execution and production writes remain disabled.
+
+Each stage emits a bounded event with duration, status and output digest. Duplicate signal IDs, excessive signal counts and failed invariants stop the workflow. The report exposes the workflow outcome and recommendations. Agents have no dynamic tool registry, no shell access, no write connector and no LLM provider in this phase. This is a real orchestration seam with deterministic agents, not a claim of autonomous LLM reasoning.
+
+Before introducing an LLM, add a versioned golden evaluation set, prompt-injection and tool-abuse tests, model/provider timeouts, output schema validation, independent policy checks, privacy redaction, cost budgets, and human approval for any high-impact action. Source records, repository content, logs and model output must remain untrusted data—not policy instructions.
+
+Research: [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework).
+
+### Request correlation and OpenTelemetry
+
+- Every API request receives an `X-Request-ID`; a valid caller-supplied value is propagated, otherwise a new ID is generated.
+- Request logs are JSON records with method, path (not query string), status, duration and request ID. Request bodies, authorization headers, query values and exception messages are intentionally excluded.
+- Optional OTLP tracing is available with `pip install -e ".[otel]"`, `OPSPILOT_OTEL_ENABLED=true`, and `OTEL_EXPORTER_OTLP_ENDPOINT` set. It is disabled by default and fails fast if explicitly enabled without its endpoint/dependencies.
+- Limitation: this adds trace instrumentation and correlation, not a complete OpenTelemetry metrics/logs exporter, alerting backend or distributed SLO/error-budget service.
+
+Research: [OpenTelemetry Python instrumentation](https://opentelemetry.io/docs/languages/python/instrumentation/), [FastAPI instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html).
+
+### Release acceptance gates for this wave
+
+- CI on Python 3.11 and 3.12 must pass unit tests, lint, and the existing fixture benchmark.
+- Tests must cover ETag cache hit/304 replay, URL allowlist and response bounds, watermark monotonicity and optimistic concurrency, agent failure handling, no-execution invariants, request IDs and API conditional GET.
+- These mechanisms are foundations for the next connector wave; they do not make the repository production-ready.
