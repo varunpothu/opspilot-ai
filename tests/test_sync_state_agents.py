@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+from datetime import timedelta
 from email.message import Message
 
 import pytest
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 from opspilot_ai.agents import AgentWorkflow
 from opspilot_ai.api import app
 from opspilot_ai.http_connector import ConditionalHTTPConnector, ReadOnlyHTTPError
+from opspilot_ai.incremental import IncrementalSyncError, IncrementalSyncRunner
 from opspilot_ai.models import Evidence, Signal
 from opspilot_ai.sync_state import CheckpointConflict, SyncStateStore, WatermarkRegression
 
@@ -171,3 +173,69 @@ def test_request_id_is_returned_and_invalid_values_are_replaced():
     invalid = client.get("/api/v1/health", headers={"X-Request-ID": "contains spaces"})
     assert invalid.status_code == 200
     assert invalid.headers["x-request-id"] != "contains spaces"
+
+
+def test_incremental_runner_commits_watermark_only_after_sink_success(tmp_path):
+    store = SyncStateStore(tmp_path / "incremental.sqlite3")
+    runner = IncrementalSyncRunner(store, max_batch_rows=10)
+    written = []
+    first = runner.run(
+        "warehouse.orders",
+        get_high_watermark=lambda: 100,
+        read_changes=lambda lower, upper: [{"id": 1}, {"id": 2}],
+        write_batch=lambda rows: written.extend(rows),
+        sink_idempotent=True,
+        etag='"orders-v1"',
+    )
+    assert first.status == "completed" and first.rows_written == 2
+    assert store.get_checkpoint("warehouse.orders")["watermark"] == 100
+
+    def failing_sink(_rows):
+        raise RuntimeError("destination unavailable")
+
+    with pytest.raises(RuntimeError, match="destination unavailable"):
+        runner.run(
+            "warehouse.orders",
+            get_high_watermark=lambda: 120,
+            read_changes=lambda lower, upper: [{"id": 3}],
+            write_batch=failing_sink,
+            sink_idempotent=True,
+        )
+    assert store.get_checkpoint("warehouse.orders")["watermark"] == 100
+
+
+def test_incremental_runner_requires_idempotent_sink_and_bounds_batch(tmp_path):
+    store = SyncStateStore(tmp_path / "incremental.sqlite3")
+    runner = IncrementalSyncRunner(store, max_batch_rows=1)
+    with pytest.raises(IncrementalSyncError, match="idempotent"):
+        runner.run(
+            "source.a", get_high_watermark=lambda: 10,
+            read_changes=lambda lower, upper: [], write_batch=lambda rows: None,
+            sink_idempotent=False,
+        )
+    with pytest.raises(IncrementalSyncError, match="exceeded"):
+        runner.run(
+            "source.a", get_high_watermark=lambda: 10,
+            read_changes=lambda lower, upper: [1, 2], write_batch=lambda rows: None,
+            sink_idempotent=True,
+        )
+    assert store.get_checkpoint("source.a") is None
+
+
+def test_incremental_runner_uses_overlap_for_late_arriving_timestamp_rows(tmp_path):
+    store = SyncStateStore(tmp_path / "incremental.sqlite3")
+    first = store.commit_checkpoint(
+        "api.events", "2026-10-10T10:00:00Z", expected_revision=None,
+    )
+    runner = IncrementalSyncRunner(store)
+    bounds = {}
+    outcome = runner.run(
+        "api.events",
+        get_high_watermark=lambda: "2026-10-10T10:10:00Z",
+        read_changes=lambda lower, upper: bounds.update(lower=lower, upper=upper) or [{"id": "late"}],
+        write_batch=lambda rows: None,
+        sink_idempotent=True,
+        overlap=timedelta(minutes=5),
+    )
+    assert bounds["lower"] == "2026-10-10T09:55:00+00:00"
+    assert outcome.checkpoint_revision == first["revision"] + 1
