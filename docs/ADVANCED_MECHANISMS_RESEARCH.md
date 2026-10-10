@@ -154,3 +154,13 @@ Research: [OpenTelemetry Python instrumentation](https://opentelemetry.io/docs/l
 - CI on Python 3.11 and 3.12 must pass unit tests, lint, and the existing fixture benchmark.
 - Tests must cover ETag cache hit/304 replay, URL allowlist and response bounds, watermark monotonicity and optimistic concurrency, agent failure handling, no-execution invariants, request IDs and API conditional GET.
 - These mechanisms are foundations for the next connector wave; they do not make the repository production-ready.
+
+
+### Read-only public GitHub source adapter
+
+- `GitHubReadOnlyConnector` provides bounded repository metadata, latest-commit metadata, and workflow-run summaries using fixed GET endpoints and the conditional HTTP cache.
+- Owner/repository slugs are validated, branch refs are encoded as path segments, pagination is bounded, and responses are projected onto allowlisted fields rather than returned wholesale.
+- The adapter is public-data only and has no credential parameter. It does not yet implement private-repository access, webhooks, authenticated rate-limit budgets, pagination across every page, or scheduled polling. Those require a dedicated secret-managed read-only GitHub App integration.
+- For scheduled production monitoring, prefer webhooks over frequent polling where possible. When polling is required, use stable URLs, conditional requests, explicit rate-limit handling, and bounded serial requests.
+
+Research: [GitHub REST API best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api).
