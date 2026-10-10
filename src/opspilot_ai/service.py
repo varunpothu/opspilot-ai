@@ -13,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from .connectors import ConnectorError, FixtureConnector
+from .agents import AgentWorkflow
 from .audit import build_audit_chain
 from .policy import evaluate_run_policy
 from .triage import assess_incident
@@ -288,6 +289,14 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
     now = datetime.now(timezone.utc)
     triage = assess_incident(target, signals)
     policy_decision = evaluate_run_policy(signals, remediation_mode)
+    agent_result = AgentWorkflow().run(target, signals, remediation_mode)
+    agent_workflow = {
+        "status": agent_result.status,
+        "evidence_digest": agent_result.evidence_digest,
+        "events": [event.__dict__ for event in agent_result.events],
+        "recommendations": list(agent_result.recommendations),
+        "execution_performed": agent_result.execution_performed,
+    }
     sandbox_result = simulate_sandbox(target, root) if remediation_mode == "sandbox" else None
     failed_validation = bool(sandbox_result and sandbox_result.get("status") != "passed")
     lifecycle.transition(
@@ -314,6 +323,7 @@ def analyze_fixture(target: str, fixture_root: str | Path, db_path: str | Path, 
         lifecycle_events=[event.to_dict() for event in lifecycle.events],
         triage=triage,
         policy_decision=policy_decision,
+        agent_workflow=agent_workflow,
         audit_chain=build_audit_chain(lifecycle.run_id, [event.to_dict() for event in lifecycle.events], source_hashes, policy_decision, triage),
     )
     database = Path(db_path).resolve()
