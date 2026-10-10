@@ -33,16 +33,20 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - SQLite-backed API idempotency keys to replay completed run responses without creating duplicate run records.
 - Retry policy with exponential backoff/jitter, process-local retry budget, explicit idempotency requirement and thread-safe circuit breaker primitives.
 - Scheduled CodeQL security-analysis workflow.
+- Conditional ETags on run detail/report APIs and a bounded, host-allowlisted read-only HTTPS connector with ETag/Last-Modified cache revalidation.
+- Durable SQLite sync checkpoints with compare-and-swap revisions, monotonic numeric/timestamp watermarks, and explicit post-sink-commit checkpoint protocol.
+- Five-stage deterministic agent workflow for evidence validation, triage, policy gating, recommendation planning and safety evaluation; workflow evidence appears in run reports and agents cannot execute actions.
+- Request-ID propagation and JSON request logs with sensitive fields omitted; optional OTLP tracing through the `otel` dependency extra.
 - Research-backed roadmap for further advanced mechanisms.
 
 ## Not implemented yet
 
 - Migration of the complete RepoSentinel codebase, all original agents, example cases and benchmark artifacts.
-- Real GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors.
-- LLM-based reasoning or agent orchestration in this new MVP package.
+- Production-configured GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors. The generic HTTP connector is a read-only primitive, not a production source integration.
+- LLM-based reasoning or autonomous tool-using agents. The current agent graph is deterministic and has no write tools.
 - Executable sandbox repair, production actions, human approval UI or rollback.
 - External identity-provider integration, multi-tenant isolation, production deployment or a React dashboard.
-- External OPA service, OpenTelemetry exporter, signed SLSA attestations or external immutable audit sink.
+- External OPA service, full OpenTelemetry metrics/logs pipeline, signed SLSA attestations or external immutable audit sink.
 
 ## API security configuration
 
@@ -103,6 +107,7 @@ Open http://127.0.0.1:8000/docs for the local API docs. Full instructions are in
 - [RepoSentinel migration record](docs/REPOSENTINEL_MIGRATION.md)
 - [MVP architecture and trust boundaries](docs/architecture/MVP_ARCHITECTURE.md)
 - [Security policy](SECURITY.md)
+- [Sync, agent and observability design](docs/ADVANCED_MECHANISMS_RESEARCH.md)
 - [Threat model and current security gaps](docs/security/threat-model.md)
 
 ## Safety
