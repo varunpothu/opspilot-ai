@@ -34,6 +34,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Retry policy with exponential backoff/jitter, process-local retry budget, explicit idempotency requirement and thread-safe circuit breaker primitives.
 - Scheduled CodeQL security-analysis workflow.
 - Conditional ETags on run detail/report APIs and a bounded, host-allowlisted read-only HTTPS connector with ETag/Last-Modified cache revalidation.
+- Read-only public GitHub connector for repository metadata, latest commit details and workflow-run summaries, with response-field allowlisting and conditional caching.
 - Durable SQLite sync checkpoints with compare-and-swap revisions, monotonic numeric/timestamp watermarks, bounded incremental batches, replay-safe idempotent-sink contract and optional timestamp overlap.
 - Five-stage deterministic agent workflow for evidence validation, triage, policy gating, recommendation planning and safety evaluation; workflow evidence appears in run reports and agents cannot execute actions.
 - Request-ID propagation and JSON request logs with sensitive fields omitted; optional OTLP tracing through the `otel` dependency extra.
@@ -42,7 +43,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 ## Not implemented yet
 
 - Migration of the complete RepoSentinel codebase, all original agents, example cases and benchmark artifacts.
-- Production-configured GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors. The generic HTTP connector is a read-only primitive, not a production source integration.
+- Production-configured private/authenticated GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors. Public GitHub metadata reads are implemented; private access, webhooks and scheduled monitoring are not.
 - LLM-based reasoning or autonomous tool-using agents. The current agent graph is deterministic and has no write tools.
 - Executable sandbox repair, production actions, human approval UI or rollback.
 - External identity-provider integration, multi-tenant isolation, production deployment or a React dashboard.
