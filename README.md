@@ -35,6 +35,7 @@ OpsPilot AI is a local-first project for investigating data pipeline and AI work
 - Scheduled CodeQL security-analysis workflow.
 - Conditional ETags on run detail/report APIs and a bounded, host-allowlisted read-only HTTPS connector with ETag/Last-Modified cache revalidation.
 - Read-only public GitHub connector for repository metadata, latest commit details and workflow-run summaries, with response-field allowlisting and conditional caching.
+- Signed GitHub webhook intake with HMAC-SHA256 verification, delivery deduplication, bounded payloads and metadata-only storage; it never triggers actions automatically.
 - Durable SQLite sync checkpoints with compare-and-swap revisions, monotonic numeric/timestamp watermarks, bounded incremental batches, replay-safe idempotent-sink contract and optional timestamp overlap.
 - Five-stage deterministic agent workflow for evidence validation, triage, policy gating, recommendation planning and safety evaluation; workflow evidence appears in run reports and agents cannot execute actions.
 - Request-ID propagation and JSON request logs with sensitive fields omitted; optional OTLP tracing through the `otel` dependency extra.
@@ -110,6 +111,10 @@ Open http://127.0.0.1:8000/docs for the local API docs. Full instructions are in
 - [Security policy](SECURITY.md)
 - [Sync, agent and observability design](docs/ADVANCED_MECHANISMS_RESEARCH.md)
 - [Threat model and current security gaps](docs/security/threat-model.md)
+
+## GitHub webhook intake
+
+Configure `OPSPILOT_GITHUB_WEBHOOK_SECRET` from a secret manager before configuring a GitHub webhook to `POST /api/v1/webhooks/github`. GitHub must send its `X-Hub-Signature-256`, `X-GitHub-Delivery`, and `X-GitHub-Event` headers. The endpoint accepts selected event types, verifies the raw body, stores bounded metadata only, deduplicates deliveries for 90 days, and always returns `actions_triggered: false`. It is an inbox, not a queue worker or remediation trigger. Do not expose it publicly without TLS, secret management, rate limits and monitoring.
 
 ## Safety
 

@@ -19,6 +19,7 @@ from .idempotency import IdempotencyConflict, complete as complete_idempotency, 
 from .observability import summarize_runs
 from .service import IncidentInputError, analyze_fixture, get_run, list_runs
 from .telemetry import RequestContextMiddleware, configure_opentelemetry
+from .webhooks import GitHubWebhookInbox, WebhookDeliveryConflict, WebhookEventError, verify_github_signature
 
 FIXTURE_ROOT = Path(os.getenv("OPSPILOT_FIXTURE_ROOT", "examples/ops_cases")).resolve()
 DB_PATH = Path(os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.sqlite3")).resolve()
@@ -194,3 +195,32 @@ def metrics(_principal: Principal = Depends(require_permission("read"))):
     recent = list_runs(DB_PATH, limit=100)
     results = [get_run(item["run_id"], DB_PATH) for item in recent]
     return summarize_runs([result for result in results if result is not None])
+
+@app.post("/api/v1/webhooks/github", status_code=202)
+async def github_webhook(request: Request):
+    """Verify and deduplicate GitHub deliveries; intake never triggers an action."""
+    secret = os.getenv("OPSPILOT_GITHUB_WEBHOOK_SECRET", "")
+    if not secret or not secret.strip():
+        raise HTTPException(status_code=503, detail="GitHub webhook secret is not configured")
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
+        raise HTTPException(status_code=415, detail="GitHub webhook must use application/json")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > 1_000_000:
+            raise HTTPException(status_code=413, detail="GitHub webhook payload exceeds 1 MB")
+        body.extend(chunk)
+    raw_body = bytes(body)
+    if not verify_github_signature(secret, raw_body, request.headers.get("x-hub-signature-256")):
+        raise HTTPException(status_code=401, detail="Invalid GitHub webhook signature")
+    try:
+        payload = json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="Webhook body must be valid UTF-8 JSON") from exc
+    event_name = request.headers.get("x-github-event", "")
+    delivery_id = request.headers.get("x-github-delivery", "")
+    try:
+        return GitHubWebhookInbox(DB_PATH).accept(delivery_id, event_name, raw_body, payload)
+    except WebhookDeliveryConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except WebhookEventError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
