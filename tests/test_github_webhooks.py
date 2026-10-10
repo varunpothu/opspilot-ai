@@ -8,7 +8,7 @@ import sqlite3
 from fastapi.testclient import TestClient
 
 from opspilot_ai.api import app
-from opspilot_ai.webhooks import GitHubWebhookInbox, verify_github_signature
+from opspilot_ai.webhooks import verify_github_signature
 
 
 def _signed_headers(secret: str, body: bytes, *, delivery: str = "delivery-123", event: str = "workflow_run") -> dict[str, str]:
@@ -112,5 +112,6 @@ def test_signature_verifier_uses_sha256_hmac():
     body = b'{"ok":true}'
     signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     assert verify_github_signature(secret, body, signature)
-    assert not verify_github_signature(secret, body, signature[:-1] + "0")
+    tampered = signature[:-1] + ("0" if signature[-1] != "0" else "1")
+    assert not verify_github_signature(secret, body, tampered)
     assert not verify_github_signature("", body, signature)
