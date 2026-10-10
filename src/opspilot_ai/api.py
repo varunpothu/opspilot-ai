@@ -1,11 +1,14 @@
 """FastAPI endpoints for local OpsPilot AI incident runs."""
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from pathlib import Path
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 
 from . import __version__
@@ -15,6 +18,7 @@ from .auth import Principal, require_any_permission, require_permission
 from .idempotency import IdempotencyConflict, complete as complete_idempotency, release as release_idempotency, reserve as reserve_idempotency
 from .observability import summarize_runs
 from .service import IncidentInputError, analyze_fixture, get_run, list_runs
+from .telemetry import RequestContextMiddleware, configure_opentelemetry
 
 FIXTURE_ROOT = Path(os.getenv("OPSPILOT_FIXTURE_ROOT", "examples/ops_cases")).resolve()
 DB_PATH = Path(os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.sqlite3")).resolve()
@@ -24,6 +28,24 @@ app = FastAPI(
     version=__version__,
     description="Local-first, fixture-backed data reliability investigation. No production writes.",
 )
+
+app.add_middleware(RequestContextMiddleware)
+configure_opentelemetry(app)
+
+
+
+
+def _conditional_json_response(request: Request, payload) -> Response:
+    """Return a stable ETag and honour If-None-Match for read-only GET resources."""
+    body = json.dumps(
+        jsonable_encoder(payload), sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+    ).encode("utf-8")
+    etag = '"' + hashlib.sha256(body).hexdigest() + '"'
+    candidates = [value.strip() for value in request.headers.get("if-none-match", "").split(",")]
+    normalized = [value[2:].strip() if value.startswith("W/") else value for value in candidates]
+    if "*" in candidates or etag in normalized:
+        return Response(status_code=304, headers={"ETag": etag, "Cache-Control": "no-cache"})
+    return Response(content=body, media_type="application/json", headers={"ETag": etag, "Cache-Control": "no-cache"})
 
 
 class RunRequest(BaseModel):
@@ -86,19 +108,19 @@ def runs(
 
 
 @app.get("/api/v1/runs/{run_id}")
-def run_detail(run_id: str, _principal: Principal = Depends(require_permission("read"))):
+def run_detail(request: Request, run_id: str, _principal: Principal = Depends(require_permission("read"))):
     result = get_run(run_id, DB_PATH)
     if result is None:
         raise HTTPException(status_code=404, detail="Run not found")
-    return result
+    return _conditional_json_response(request, result)
 
 
 @app.get("/api/v1/runs/{run_id}/report")
-def run_report(run_id: str, _principal: Principal = Depends(require_permission("read"))):
+def run_report(request: Request, run_id: str, _principal: Principal = Depends(require_permission("read"))):
     result = get_run(run_id, DB_PATH)
     if result is None:
         raise HTTPException(status_code=404, detail="Run not found")
-    return {
+    payload = {
         "run_id": result.run_id,
         "target": result.target,
         "summary": result.summary,
@@ -107,11 +129,13 @@ def run_report(run_id: str, _principal: Principal = Depends(require_permission("
         "lifecycle_events": result.lifecycle_events,
         "triage": result.triage,
         "policy_decision": result.policy_decision,
+        "agent_workflow": result.agent_workflow,
         "audit_chain": result.audit_chain,
         "signals": [signal.model_dump() for signal in result.signals],
         "hypotheses": [hypothesis.model_dump() for hypothesis in result.hypotheses],
         "remediation_plans": [plan.model_dump() for plan in result.remediation_plans],
     }
+    return _conditional_json_response(request, payload)
 
 
 @app.get("/api/v1/runs/{run_id}/audit/verify")
