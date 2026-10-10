@@ -26,7 +26,8 @@ Status is intentionally explicit. This repository is an early MVP, not a product
 - Research roadmap, security/threat-model documentation and scheduled CodeQL security analysis.
 - Conditional ETags on run-detail and report GET endpoints; weak/wildcard `If-None-Match` matching.
 - Allowlisted read-only HTTPS connector with ETag/Last-Modified revalidation, cached-body reuse after 304, timeout and response-size limits.
-- Read-only public GitHub metadata adapter for repository metadata, latest commit metadata and bounded workflow-run summaries; private/authenticated GitHub and scheduled polling are not implemented.
+- Read-only public GitHub metadata adapter for repository metadata, latest commit metadata and bounded workflow-run summaries.
+- HMAC-SHA256-verified GitHub webhook intake with delivery-ID deduplication, 1 MB payload limit, bounded metadata-only persistence, 90-day retention and no automatic action execution.
 - SQLite sync-state store with optimistic checkpoint revisions and monotonic numeric/ISO-8601 watermarks.
 - Incremental sync runner with bounded batches, idempotent-sink requirement, timestamp overlap windows, and checkpoint advancement only after sink success; cross-system atomicity is not claimed.
 - Five-stage deterministic agent workflow (evidence validation, triage, policy gate, recommendation planner, safety evaluator) integrated into run reports; no LLM or action-execution privileges.
@@ -41,12 +42,12 @@ The original benchmark results have not been rerun against this MVP and must not
 ## Not implemented
 
 - Execution of the original 16-agent OpsWorkflow through the new run service.
-- Production-configured private/authenticated GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors. The public GitHub adapter is a read-only first connector, not a production monitoring integration.
+- Production-configured private/authenticated GitHub, dbt, SQL warehouse, AWS, monitoring or model-serving connectors. The public GitHub adapter and signed webhook inbox are integration foundations, not a production monitoring/queue-processing system.
 - LLM-based reasoning in the new MVP package; the implemented agent graph is deterministic and has no tool execution.
 - Production repair, shell execution or autonomous actions.
 - External identity-provider integration, token lifecycle/rotation, multi-tenant isolation, public deployment or a React dashboard.
 - External OPA service, complete OpenTelemetry metrics/logs exporter, signed SLSA attestations or external immutable audit sink.
-- Distributed retry budgets, distributed idempotency or a persistent queue.
+- Distributed retry budgets, distributed idempotency or a persistent queue/dead-letter worker for webhook event processing.
 
 ## Release gates still outstanding
 
