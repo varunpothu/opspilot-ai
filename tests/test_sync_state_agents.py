@@ -161,3 +161,13 @@ def test_run_detail_supports_conditional_etag(tmp_path, monkeypatch):
     second = client.get(f"/api/v1/runs/{run_id}", headers={"If-None-Match": etag})
     assert second.status_code == 304
     assert second.headers["etag"] == etag
+
+
+def test_request_id_is_returned_and_invalid_values_are_replaced():
+    client = TestClient(app)
+    supplied = client.get("/api/v1/health", headers={"X-Request-ID": "demo-request-123"})
+    assert supplied.status_code == 200
+    assert supplied.headers["x-request-id"] == "demo-request-123"
+    invalid = client.get("/api/v1/health", headers={"X-Request-ID": "contains spaces"})
+    assert invalid.status_code == 200
+    assert invalid.headers["x-request-id"] != "contains spaces"
